@@ -8,7 +8,7 @@ export default function Home() {
     <>
       <PageMeta
         title="Dehu | Municipal Survey Dashboard"
-        description="This is React.js Ecommerce Dashboard page for TailAdmin - React.js Tailwind CSS Admin Dashboard Template"
+        description="View and manage municipal survey data easily"
       />
       <div className="col-span-12">
         <EcommerceMetrics />

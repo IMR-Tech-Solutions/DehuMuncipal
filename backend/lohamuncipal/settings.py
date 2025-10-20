@@ -24,10 +24,10 @@ SECRET_KEY = 'django-insecure-i+5a+pj0l0(p9)b%_9%)i%%5lf==e(^&4(fgz=^2pm2gp9gl3s
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173", "https://lohamuncipal.in"
+    "http://localhost:5173", "https://dehumuncipal.imrtechsolutions.com"
 ]
 CORS_ALLOW_CREDENTIALS = True 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "lohamuncipal.in"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "dehumuncipal.imrtechsolutions.com"]
 
 BASE_URL = "http://localhost:8000" 
 
@@ -105,28 +105,28 @@ WSGI_APPLICATION = 'lohamuncipal.wsgi.application'
 # }
 
 #Localhost Postgresql Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'dehumunicipal',
-        'USER': 'postgres',
-        'PASSWORD':'root',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
-}
-
-# Server Postgresql Database
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.postgresql',
 #         'NAME': 'dehumunicipal',
 #         'USER': 'postgres',
-#         'PASSWORD':'Admin@_2223',
+#         'PASSWORD':'root',
 #         'HOST': 'localhost',
 #         'PORT': '5432',
 #     }
 # }
+
+# Server Postgresql Database
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'dehumunicipal',
+        'USER': 'postgres',
+        'PASSWORD':'Admin@_2223',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
