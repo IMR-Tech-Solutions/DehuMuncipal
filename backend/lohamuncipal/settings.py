@@ -29,7 +29,7 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "dehumuncipal.imrtechsolutions.com"]
 
-BASE_URL = "http://localhost:8000" 
+BASE_URL = ["http://localhost:8000", "https://dehumuncipal.imrtechsolutions.com"] 
 
 # Application definition
 INSTALLED_APPS = [
