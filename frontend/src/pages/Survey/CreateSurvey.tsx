@@ -3,7 +3,10 @@ import { toast } from "react-toastify";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
 import { addSurveyService } from "../../services/surveyservices";
-import { propertyDescriptionOptions, connectionSizes } from "../../services/surveydropdownmenu";
+import {
+  propertyDescriptionOptions,
+  connectionSizes,
+} from "../../services/surveydropdownmenu";
 import { handleError } from "../../utils/handleError";
 
 // InputField Component
@@ -11,7 +14,11 @@ interface InputFieldProps {
   label: string;
   name: string;
   value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
+  onChange: (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => void;
   type?: string;
   placeholder?: string;
   required?: boolean;
@@ -103,6 +110,10 @@ interface SurveyFormData {
   water_connection_available: string;
   number_of_water_connections: string;
   connection_size: string;
+  water_connection_owner_name: string;
+  pending_tax: string;
+  current_tax: string;
+  total_tax: string;
   remarks: string;
   remarks_marathi: string;
 }
@@ -122,6 +133,10 @@ const CreateSurvey = () => {
     water_connection_available: "",
     number_of_water_connections: "",
     connection_size: "",
+    water_connection_owner_name: "",
+    pending_tax: "",
+    current_tax: "",
+    total_tax: "",
     remarks: "",
     remarks_marathi: "",
   });
@@ -145,10 +160,12 @@ const CreateSurvey = () => {
 
   // Handle input change - WITH AUTO-TRANSLATION
   const handleChange = async (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     const { name, value } = e.target;
-    
+
     setFormData((prev) => {
       const newData = { ...prev, [name]: value };
 
@@ -162,11 +179,7 @@ const CreateSurvey = () => {
     });
 
     // Auto-translate to Marathi for address and remarks
-    const englishToMarathiMap: Record<
-      | "remarks"
-      | "address",
-      string
-    > = {
+    const englishToMarathiMap: Record<"remarks" | "address", string> = {
       address: "address_marathi",
       remarks: "remarks_marathi",
     };
@@ -208,6 +221,10 @@ const CreateSurvey = () => {
         water_connection_available: "",
         number_of_water_connections: "",
         connection_size: "",
+        water_connection_owner_name: "",
+        pending_tax: "",
+        current_tax: "",
+        total_tax: "",
         remarks: "",
         remarks_marathi: "",
       });
@@ -221,10 +238,7 @@ const CreateSurvey = () => {
 
   return (
     <>
-      <PageMeta
-        title="Create Survey"
-        description="Create a new survey entry"
-      />
+      <PageMeta title="Create Survey" description="Create a new survey entry" />
       <PageBreadcrumb pageTitle="Create New Survey" />
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
@@ -286,6 +300,39 @@ const CreateSurvey = () => {
               </div>
             </div>
 
+            {/* Tax Information */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                Tax Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-4">
+                <InputField
+                  label="Pending Tax"
+                  name="pending_tax"
+                  value={formData.pending_tax}
+                  onChange={handleChange}
+                  type="number"
+                  placeholder="Enter pending tax amount"
+                />
+                <InputField
+                  label="Current Tax"
+                  name="current_tax"
+                  value={formData.current_tax}
+                  onChange={handleChange}
+                  type="number"
+                  placeholder="Enter current tax amount"
+                />
+                <InputField
+                  label="Total Tax"
+                  name="total_tax"
+                  value={formData.total_tax}
+                  onChange={handleChange}
+                  type="number"
+                  placeholder="Enter total tax amount"
+                />
+              </div>
+            </div>
+
             {/* Address - WITH AUTO-TRANSLATION */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
@@ -312,7 +359,6 @@ const CreateSurvey = () => {
               </div>
             </div>
 
-
             {/* Water Connection - WITH CONNECTION SIZE DROPDOWN */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
@@ -330,6 +376,13 @@ const CreateSurvey = () => {
                 />
                 {formData.water_connection_available === "Yes" && (
                   <>
+                    <InputField
+                      label="Water Connection Owner Name"
+                      name="water_connection_owner_name"
+                      value={formData.water_connection_owner_name}
+                      onChange={handleChange}
+                      placeholder="Enter Water Connection Owner's Name"
+                    />
                     <InputField
                       label="Number of Water Connections"
                       name="number_of_water_connections"

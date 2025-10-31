@@ -28,6 +28,11 @@ class Survey(models.Model):
     remarks = models.TextField(blank=True, null=True)
     remarks_marathi = models.TextField(blank=True, null=True)
 
+    water_connection_owner_name = models.CharField(max_length=200, blank=True, null=True)
+    pending_tax = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, default=0)
+    current_tax = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, default=0)
+    total_tax = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, default=0)
+
     # Timestamps
     created_by = models.ForeignKey(UserMaster, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)

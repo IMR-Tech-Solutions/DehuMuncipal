@@ -1,23 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import { Spin, Alert, Button } from 'antd';
-import PageMeta from '../../components/common/PageMeta';
-import PageBreadcrumb from '../../components/common/PageBreadCrumb';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import { Spin, Alert, Button } from "antd";
+import PageMeta from "../../components/common/PageMeta";
+import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+import { ArrowLeftOutlined } from "@ant-design/icons";
 import {
   getSingleSurveyService,
   updateSurveyService,
-} from '../../services/surveyservices';
-import { propertyDescriptionOptions, connectionSizes } from '../../services/surveydropdownmenu';
-import { handleError } from '../../utils/handleError';
+} from "../../services/surveyservices";
+import {
+  propertyDescriptionOptions,
+  connectionSizes,
+} from "../../services/surveydropdownmenu";
+import { handleError } from "../../utils/handleError";
 
 // InputField Component
 interface InputFieldProps {
   label: string;
   name: string;
   value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
+  onChange: (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => void;
   type?: string;
   placeholder?: string;
   required?: boolean;
@@ -109,6 +116,10 @@ interface SurveyFormData {
   water_connection_available: string;
   number_of_water_connections: string;
   connection_size: string;
+  water_connection_owner_name: string;
+  pending_tax: string;
+  current_tax: string;
+  total_tax: string;
   remarks: string;
   remarks_marathi: string;
 }
@@ -133,6 +144,10 @@ const EditSurvey = () => {
     water_connection_available: "",
     number_of_water_connections: "",
     connection_size: "",
+    water_connection_owner_name: "",
+    pending_tax: "",
+    current_tax: "",
+    total_tax: "",
     remarks: "",
     remarks_marathi: "",
   });
@@ -181,8 +196,14 @@ const EditSurvey = () => {
         address: surveyData.address || "",
         address_marathi: surveyData.address_marathi || "",
         water_connection_available: surveyData.water_connection_available || "",
-        number_of_water_connections: surveyData.number_of_water_connections?.toString() || "",
+        number_of_water_connections:
+          surveyData.number_of_water_connections?.toString() || "",
         connection_size: surveyData.connection_size || "",
+        water_connection_owner_name:
+          surveyData.water_connection_owner_name || "",
+        pending_tax: surveyData.pending_tax?.toString() || "",
+        current_tax: surveyData.current_tax?.toString() || "",
+        total_tax: surveyData.total_tax?.toString() || "",
         remarks: surveyData.remarks || "",
         remarks_marathi: surveyData.remarks_marathi || "",
       });
@@ -213,7 +234,9 @@ const EditSurvey = () => {
 
   // Handle input change - WITH AUTO-TRANSLATION
   const handleChange = async (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     const { name, value } = e.target;
 
@@ -290,7 +313,10 @@ const EditSurvey = () => {
   if (fetchError) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-800 p-6">
-        <PageMeta title="Edit Survey - Error" description="Error loading survey data" />
+        <PageMeta
+          title="Edit Survey - Error"
+          description="Error loading survey data"
+        />
         <PageBreadcrumb pageTitle="Edit Survey" />
 
         <div className="max-w-2xl mx-auto">
@@ -393,6 +419,38 @@ const EditSurvey = () => {
               </div>
             </div>
 
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                Tax Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-6">
+                <InputField
+                  label="Pending Tax"
+                  name="pending_tax"
+                  value={formData.pending_tax}
+                  onChange={handleChange}
+                  type="number"
+                  placeholder="Enter pending tax amount"
+                />
+                <InputField
+                  label="Current Tax"
+                  name="current_tax"
+                  value={formData.current_tax}
+                  onChange={handleChange}
+                  type="number"
+                  placeholder="Enter current tax amount"
+                />
+                <InputField
+                  label="Total Tax"
+                  name="total_tax"
+                  value={formData.total_tax}
+                  onChange={handleChange}
+                  type="number"
+                  placeholder="Enter total tax amount"
+                />
+              </div>
+            </div>
+
             {/* Address - WITH AUTO-TRANSLATION */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
@@ -436,6 +494,13 @@ const EditSurvey = () => {
                 />
                 {formData.water_connection_available === "Yes" && (
                   <>
+                    <InputField
+                      label="Water Connection Owner Name"
+                      name="water_connection_owner_name"
+                      value={formData.water_connection_owner_name}
+                      onChange={handleChange}
+                      placeholder="Enter Owner's Name"
+                    />
                     <InputField
                       label="Number of Water Connections"
                       name="number_of_water_connections"

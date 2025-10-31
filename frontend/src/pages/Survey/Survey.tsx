@@ -528,7 +528,7 @@ const Surveys = () => {
         </div>
 
         {/* Statistics Cards - UPDATED */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
           <Card size="small" className="text-center">
             <div className="text-2xl font-bold text-blue-600">
               {surveys.length}
