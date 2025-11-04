@@ -12,6 +12,8 @@ import {
 import {
   propertyDescriptionOptions,
   connectionSizes,
+  propertyTypeOptions,
+  connectionTypeOptions,
 } from "../../services/surveydropdownmenu";
 import { handleError } from "../../utils/handleError";
 
@@ -19,7 +21,7 @@ import { handleError } from "../../utils/handleError";
 interface InputFieldProps {
   label: string;
   name: string;
-  value: string;
+  value: string | File | null;
   onChange: (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -59,7 +61,7 @@ const InputField = React.memo<InputFieldProps>(
           <select
             id={inputId}
             name={name}
-            value={value}
+            value={value as string}
             onChange={onChange}
             className={`w-full border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:text-white dark:bg-gray-800 px-4 py-2.5 text-sm ${
               isMarathi ? "font-marathi" : ""
@@ -76,7 +78,7 @@ const InputField = React.memo<InputFieldProps>(
           <textarea
             id={inputId}
             name={name}
-            value={value}
+            value={value as string}
             onChange={onChange}
             className={`w-full border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:text-white dark:bg-gray-800 px-4 py-2.5 text-sm resize-none ${
               isMarathi ? "font-marathi" : ""
@@ -84,12 +86,28 @@ const InputField = React.memo<InputFieldProps>(
             placeholder={placeholder}
             rows={3}
           />
+        ) : type === "file" ? (
+          <div>
+            <input
+              id={inputId}
+              type="file"
+              name={name}
+              onChange={onChange}
+              className={`w-full border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:text-white dark:bg-gray-800 px-4 py-2.5 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100`}
+              accept="image/*"
+            />
+            {value && typeof value === "string" && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Current: {value}
+              </p>
+            )}
+          </div>
         ) : (
           <input
             id={inputId}
             type={type}
             name={name}
-            value={value}
+            value={value as string}
             onChange={onChange}
             className={`w-full border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:text-white dark:bg-gray-800 px-4 py-2.5 text-sm ${
               isMarathi ? "font-marathi" : ""
@@ -111,11 +129,19 @@ interface SurveyFormData {
   old_ward_no: string;
   old_property_no: string;
   property_description: string;
+  property_owner_name: string;
+  property_type: string;
   address: string;
   address_marathi: string;
   water_connection_available: string;
-  number_of_water_connections: string;
+  pipe_holder_name: string;
+  connection_type: string;
+  connection_number: string;
   connection_size: string;
+  number_of_water_connections: string;
+  pipe_holder_contact: string;
+  connection_photo: File | string | null;
+  old_connection_number: string;
   water_connection_owner_name: string;
   pending_tax: string;
   current_tax: string;
@@ -139,11 +165,19 @@ const EditSurvey = () => {
     old_ward_no: "",
     old_property_no: "",
     property_description: "",
+    property_owner_name: "",
+    property_type: "",
     address: "",
     address_marathi: "",
     water_connection_available: "",
-    number_of_water_connections: "",
+    pipe_holder_name: "",
+    connection_type: "",
+    connection_number: "",
     connection_size: "",
+    number_of_water_connections: "",
+    pipe_holder_contact: "",
+    connection_photo: null,
+    old_connection_number: "",
     water_connection_owner_name: "",
     pending_tax: "",
     current_tax: "",
@@ -193,12 +227,20 @@ const EditSurvey = () => {
         old_ward_no: surveyData.old_ward_no?.toString() || "",
         old_property_no: surveyData.old_property_no?.toString() || "",
         property_description: surveyData.property_description || "",
+        property_owner_name: surveyData.property_owner_name || "",
+        property_type: surveyData.property_type || "",
         address: surveyData.address || "",
         address_marathi: surveyData.address_marathi || "",
         water_connection_available: surveyData.water_connection_available || "",
+        pipe_holder_name: surveyData.pipe_holder_name || "",
+        connection_type: surveyData.connection_type || "",
+        connection_number: surveyData.connection_number || "",
+        connection_size: surveyData.connection_size || "",
         number_of_water_connections:
           surveyData.number_of_water_connections?.toString() || "",
-        connection_size: surveyData.connection_size || "",
+        pipe_holder_contact: surveyData.pipe_holder_contact || "",
+        connection_photo: surveyData.connection_photo || null,
+        old_connection_number: surveyData.old_connection_number || "",
         water_connection_owner_name:
           surveyData.water_connection_owner_name || "",
         pending_tax: surveyData.pending_tax?.toString() || "",
@@ -238,7 +280,17 @@ const EditSurvey = () => {
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >
   ) => {
-    const { name, value } = e.target;
+    const { name, type } = e.target;
+    let value: string | File | null = "";
+
+    if (type === "file") {
+      const fileInput = e.target as HTMLInputElement;
+      value = fileInput.files ? fileInput.files[0] : null;
+    } else {
+      value = (
+        e.target as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      ).value;
+    }
 
     setFormData((prev) => {
       const newData = { ...prev, [name]: value };
@@ -247,6 +299,13 @@ const EditSurvey = () => {
       if (name === "water_connection_available" && value !== "Yes") {
         newData.number_of_water_connections = "";
         newData.connection_size = "";
+        newData.pipe_holder_name = "";
+        newData.connection_type = "";
+        newData.connection_number = "";
+        newData.pipe_holder_contact = "";
+        newData.connection_photo = null;
+        newData.old_connection_number = "";
+        newData.water_connection_owner_name = "";
       }
 
       return newData;
@@ -258,7 +317,7 @@ const EditSurvey = () => {
       remarks: "remarks_marathi",
     };
 
-    if (englishToMarathiMap[name]) {
+    if (typeof value === "string" && englishToMarathiMap[name]) {
       const marathiField = englishToMarathiMap[name];
       const translatedText = await translateToMarathi(value);
       setFormData((prev) => ({ ...prev, [marathiField]: translatedText }));
@@ -277,8 +336,19 @@ const EditSurvey = () => {
         return;
       }
 
+      // Create FormData for file upload
+      const submitData = new FormData();
+      Object.keys(formData).forEach((key) => {
+        const value = formData[key as keyof SurveyFormData];
+        if (value instanceof File) {
+          submitData.append(key, value);
+        } else if (value !== null && value !== "") {
+          submitData.append(key, String(value));
+        }
+      });
+
       // Submit data
-      const result = await updateSurveyService(parseInt(id || "0"), formData);
+      const result = await updateSurveyService(parseInt(id || "0"), submitData);
       toast.success("Survey updated successfully!");
       console.log("Survey Response:", result);
       navigate("/surveys");
@@ -406,7 +476,6 @@ const EditSurvey = () => {
                   value={formData.old_property_no}
                   onChange={handleChange}
                 />
-                {/* Property Description as Dropdown */}
                 <InputField
                   label="Property Description"
                   name="property_description"
@@ -419,6 +488,32 @@ const EditSurvey = () => {
               </div>
             </div>
 
+            {/* Property Owner Information */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                Property Owner Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <InputField
+                  label="Property Owner Name"
+                  placeholder="Enter property owner's name"
+                  name="property_owner_name"
+                  value={formData.property_owner_name}
+                  onChange={handleChange}
+                />
+                <InputField
+                  label="Property Type"
+                  name="property_type"
+                  value={formData.property_type}
+                  onChange={handleChange}
+                  type="select"
+                  options={propertyTypeOptions}
+                  placeholder="Select property type"
+                />
+              </div>
+            </div>
+
+            {/* Tax Information */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Tax Information
@@ -477,7 +572,7 @@ const EditSurvey = () => {
               </div>
             </div>
 
-            {/* Water Connection - WITH CONNECTION SIZE DROPDOWN */}
+            {/* Water Connection Details */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Water Connection
@@ -491,15 +586,41 @@ const EditSurvey = () => {
                   type="select"
                   options={["Yes", "No"]}
                   placeholder="Select availability"
+                  required
                 />
                 {formData.water_connection_available === "Yes" && (
                   <>
                     <InputField
-                      label="Water Connection Owner Name"
-                      name="water_connection_owner_name"
-                      value={formData.water_connection_owner_name}
+                      label="Pipe Holder Name"
+                      placeholder="Enter pipe holder's name"
+                      name="pipe_holder_name"
+                      value={formData.pipe_holder_name}
                       onChange={handleChange}
-                      placeholder="Enter Owner's Name"
+                    />
+                    <InputField
+                      label="Connection Type"
+                      name="connection_type"
+                      value={formData.connection_type}
+                      onChange={handleChange}
+                      type="select"
+                      options={connectionTypeOptions}
+                      placeholder="Select connection type"
+                    />
+                    <InputField
+                      label="Connection Number"
+                      placeholder="Enter connection number"
+                      name="connection_number"
+                      value={formData.connection_number}
+                      onChange={handleChange}
+                    />
+                    <InputField
+                      label="Connection Size"
+                      name="connection_size"
+                      value={formData.connection_size}
+                      onChange={handleChange}
+                      type="select"
+                      options={connectionSizes}
+                      placeholder="Select connection size"
                     />
                     <InputField
                       label="Number of Water Connections"
@@ -509,15 +630,34 @@ const EditSurvey = () => {
                       type="number"
                       placeholder="Number of connections"
                     />
-                    {/* Connection Size as Dropdown */}
                     <InputField
-                      label="Connection Size"
-                      name="connection_size"
-                      value={formData.connection_size}
+                      label="Pipe Holder Contact"
+                      placeholder="Enter contact number"
+                      name="pipe_holder_contact"
+                      value={formData.pipe_holder_contact}
                       onChange={handleChange}
-                      type="select"
-                      options={connectionSizes}
-                      placeholder="Select connection size"
+                      type="tel"
+                    />
+                    <InputField
+                      label="Old Connection Number"
+                      placeholder="Enter old connection number"
+                      name="old_connection_number"
+                      value={formData.old_connection_number}
+                      onChange={handleChange}
+                    />
+                    <InputField
+                      label="Water Connection Owner Name"
+                      placeholder="Enter water connection owner's name"
+                      name="water_connection_owner_name"
+                      value={formData.water_connection_owner_name}
+                      onChange={handleChange}
+                    />
+                    <InputField
+                      label="Connection Photo"
+                      name="connection_photo"
+                      value={formData.connection_photo}
+                      onChange={handleChange}
+                      type="file"
                     />
                   </>
                 )}
