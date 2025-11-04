@@ -725,3 +725,69 @@ class SurveyStatsView(APIView):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+
+#-----------------------------
+# Survey Report Generation View
+#------------------------------
+from django.template.loader import render_to_string
+from weasyprint import HTML
+
+class SurveyDownloadReportView(APIView):
+    permission_classes = [IsAuthenticated, HasModuleAccess]
+    required_permission = "view-survey"
+    
+    def get(self, request, survey_id, *args, **kwargs):
+        """Download survey report as PDF"""
+        try:
+            # Fetch survey
+            survey = Survey.objects.get(id=survey_id)
+            
+            # Prepare context
+            context = {
+                'survey': survey,
+                'municipality_name': 'शिरुर नगरपरिषद',
+                'municipality_english': 'Shirur Municipal Corporation',
+                'ward_name': f'Ward {survey.ward_no}',
+                'property_info': f'Property {survey.property_no}',
+            }
+            
+            # Render HTML template
+            html_string = render_to_string('survey/survey_report.html', context)
+            
+            # Generate PDF
+            pdf_file = io.BytesIO()
+            HTML(string=html_string).write_pdf(pdf_file)
+            pdf_file.seek(0)
+            
+            logger.info(f"Survey report generated for survey ID: {survey_id}")
+            
+            # Return PDF response
+            response = HttpResponse(
+                pdf_file.getvalue(),
+                content_type='application/pdf'
+            )
+            response['Content-Disposition'] = f'attachment; filename="Survey-Report-{survey_id}.pdf"'
+            
+            return response
+            
+        except Survey.DoesNotExist:
+            logger.error(f"Survey not found: {survey_id}")
+            return Response(
+                {
+                    "success": False,
+                    "message": f"Survey with ID {survey_id} not found.",
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            logger.error(f"Error generating report for survey {survey_id}: {str(e)}")
+            return Response(
+                {
+                    "success": False,
+                    "message": "Failed to generate report",
+                    "error": str(e),
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )

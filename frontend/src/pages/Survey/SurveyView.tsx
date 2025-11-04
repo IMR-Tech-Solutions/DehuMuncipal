@@ -2,10 +2,14 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
-import { getSingleSurveyService } from "../../services/surveyservices";
+import {
+  getSingleSurveyService,
+  downloadSurveyReport,
+} from "../../services/surveyservices";
 import { handleError } from "../../utils/handleError";
-import { Spin, Tag, Row, Col } from "antd";
-import { 
+import { toast } from "react-toastify";
+import { Spin, Tag, Row, Col, Button } from "antd";
+import {
   ArrowLeftOutlined,
   HomeOutlined,
   CalendarOutlined,
@@ -16,6 +20,7 @@ import {
   FileTextOutlined,
   DollarOutlined,
   IdcardOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 
 const SurveyView = () => {
@@ -49,11 +54,19 @@ const SurveyView = () => {
       old_ward_no: "Old Ward Number",
       old_property_no: "Old Property Number",
       property_description: "Property Description",
+      property_owner_name: "Property Owner Name",
+      property_type: "Property Type",
       address: "Address",
       address_marathi: "पत्ता (मराठी)",
       water_connection_available: "Water Connection Available",
-      number_of_water_connections: "Number of Water Connections",
+      pipe_holder_name: "Pipe Holder Name",
+      connection_type: "Connection Type",
+      connection_number: "Connection Number",
       connection_size: "Connection Size",
+      number_of_water_connections: "Number of Water Connections",
+      pipe_holder_contact: "Pipe Holder Contact",
+      connection_photo: "Connection Photo",
+      old_connection_number: "Old Connection Number",
       water_connection_owner_name: "Water Connection Owner Name",
       pending_tax: "Pending Tax",
       current_tax: "Current Tax",
@@ -78,11 +91,19 @@ const SurveyView = () => {
       old_ward_no: <NumberOutlined className="text-gray-500" />,
       old_property_no: <HomeOutlined className="text-gray-500" />,
       property_description: <FileTextOutlined className="text-purple-500" />,
+      property_owner_name: <UserOutlined className="text-cyan-500" />,
+      property_type: <HomeOutlined className="text-orange-500" />,
       address: <EnvironmentOutlined className="text-orange-500" />,
       address_marathi: <EnvironmentOutlined className="text-orange-500" />,
       water_connection_available: <UserOutlined className="text-blue-400" />,
-      number_of_water_connections: <UserOutlined className="text-blue-400" />,
-      connection_size: <UserOutlined className="text-blue-400" />,
+      pipe_holder_name: <UserOutlined className="text-pink-500" />,
+      connection_type: <FileTextOutlined className="text-blue-600" />,
+      connection_number: <NumberOutlined className="text-indigo-500" />,
+      connection_size: <NumberOutlined className="text-teal-500" />,
+      number_of_water_connections: <NumberOutlined className="text-lime-500" />,
+      pipe_holder_contact: <UserOutlined className="text-rose-500" />,
+      connection_photo: <FileTextOutlined className="text-violet-500" />,
+      old_connection_number: <NumberOutlined className="text-gray-500" />,
       water_connection_owner_name: <IdcardOutlined className="text-teal-500" />,
       pending_tax: <DollarOutlined className="text-emerald-500" />,
       current_tax: <DollarOutlined className="text-emerald-500" />,
@@ -104,15 +125,17 @@ const SurveyView = () => {
       return <span className="text-gray-500 dark:text-gray-400">-</span>;
     }
 
-    // Total toilets highlight (kept if still present on backend)
-    if (key === "total_toilets") {
+    // Image field
+    if (key === "connection_photo" && value) {
       return (
-        <div className="flex items-center gap-2">
-          <Tag color="cyan" className="font-semibold">
-            {value}
-          </Tag>
-          <span className="text-xs text-gray-500">(Auto-calculated)</span>
-        </div>
+        <a
+          href={value}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-500 hover:text-blue-700 underline"
+        >
+          View Photo
+        </a>
       );
     }
 
@@ -173,8 +196,9 @@ const SurveyView = () => {
   const groupFields = (fields: [string, any][]) => {
     const groups = {
       "Property Information": [] as [string, any][],
+      "Property Owner Information": [] as [string, any][],
       "Address Information": [] as [string, any][],
-      "Water Connection": [] as [string, any][],
+      "Water Connection Details": [] as [string, any][],
       "Tax Information": [] as [string, any][],
       Remarks: [] as [string, any][],
       "System Information": [] as [string, any][],
@@ -187,11 +211,18 @@ const SurveyView = () => {
       "old_property_no",
       "property_description",
     ];
+    const propertyOwnerFields = ["property_owner_name", "property_type"];
     const addressFields = ["address", "address_marathi"];
     const waterFields = [
       "water_connection_available",
-      "number_of_water_connections",
+      "pipe_holder_name",
+      "connection_type",
+      "connection_number",
       "connection_size",
+      "number_of_water_connections",
+      "pipe_holder_contact",
+      "connection_photo",
+      "old_connection_number",
       "water_connection_owner_name",
     ];
     const taxFields = ["pending_tax", "current_tax", "total_tax"];
@@ -201,10 +232,12 @@ const SurveyView = () => {
     fields.forEach(([key, value]) => {
       if (propertyFields.includes(key)) {
         groups["Property Information"].push([key, value]);
+      } else if (propertyOwnerFields.includes(key)) {
+        groups["Property Owner Information"].push([key, value]);
       } else if (addressFields.includes(key)) {
         groups["Address Information"].push([key, value]);
       } else if (waterFields.includes(key)) {
-        groups["Water Connection"].push([key, value]);
+        groups["Water Connection Details"].push([key, value]);
       } else if (taxFields.includes(key)) {
         groups["Tax Information"].push([key, value]);
       } else if (remarkFields.includes(key)) {
@@ -217,6 +250,15 @@ const SurveyView = () => {
     return groups;
   };
 
+  const handleDownloadReport = async () => {
+    try {
+      await downloadSurveyReport(Number(id));
+      toast.success("Report downloaded successfully!");
+    } catch (error) {
+      handleError(error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -227,7 +269,10 @@ const SurveyView = () => {
 
   return (
     <>
-      <PageMeta title="Survey Details" description="View property survey details" />
+      <PageMeta
+        title="Survey Details"
+        description="View property survey details"
+      />
       <PageBreadcrumb pageTitle="Survey Details" />
 
       {/* Header Card */}
@@ -254,7 +299,8 @@ const SurveyView = () => {
             {/* Title + Info */}
             <div className="order-3 xl:order-2">
               <h4 className="mb-2 text-lg font-semibold text-center text-gray-800 dark:text-white/90 xl:text-left">
-                Property Survey - Ward {survey?.ward_no}, Property {survey?.property_no}
+                Property Survey - Ward {survey?.ward_no}, Property{" "}
+                {survey?.property_no}
               </h4>
               <div className="flex flex-col items-center gap-1 text-center xl:flex-row xl:gap-3 xl:text-left">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -264,7 +310,8 @@ const SurveyView = () => {
                   <>
                     <div className="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Created: {new Date(survey.created_at).toLocaleDateString("en-IN")}
+                      Created:{" "}
+                      {new Date(survey.created_at).toLocaleDateString("en-IN")}
                     </p>
                   </>
                 )}
@@ -273,37 +320,50 @@ const SurveyView = () => {
                     <div className="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
                     <Tag
                       color={
-                        survey.water_connection_available === "Yes" ? "green" : "red"
+                        survey.water_connection_available === "Yes"
+                          ? "green"
+                          : "red"
                       }
                     >
                       Water: {survey.water_connection_available}
                     </Tag>
                   </>
                 )}
-                {typeof survey?.total_tax !== "undefined" && survey?.total_tax !== null && (
-                  <>
-                    <div className="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Total Tax:{" "}
-                      {Number(survey.total_tax).toLocaleString("en-IN", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </p>
-                  </>
-                )}
+                {typeof survey?.total_tax !== "undefined" &&
+                  survey?.total_tax !== null && (
+                    <>
+                      <div className="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Total Tax:{" "}
+                        {Number(survey.total_tax).toLocaleString("en-IN", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </p>
+                    </>
+                  )}
               </div>
             </div>
           </div>
 
-          {/* Back Button */}
-          <button
-            onClick={() => navigate(-1)}
-            className="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto"
-          >
-            <ArrowLeftOutlined className="w-4 h-4" />
-            Back
-          </button>
+          {/* Action Buttons */}
+          <div className="flex flex-col gap-2 w-full lg:w-auto">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex w-full items-center justify-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 lg:inline-flex lg:w-auto"
+            >
+              <ArrowLeftOutlined className="w-4 h-4" />
+              Back
+            </button>
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              onClick={handleDownloadReport}
+              className="w-full lg:w-auto"
+            >
+              Download Report
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -323,38 +383,40 @@ const SurveyView = () => {
                 );
                 const groupedFields = groupFields(allFields);
 
-                return Object.entries(groupedFields).map(([groupName, fields]) => {
-                  if (fields.length === 0) return null;
+                return Object.entries(groupedFields).map(
+                  ([groupName, fields]) => {
+                    if (fields.length === 0) return null;
 
-                  return (
-                    <div key={groupName} className="mb-8 last:mb-0">
-                      <h5 className="text-md font-medium text-gray-700 dark:text-gray-300 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
-                        {groupName}
-                      </h5>
-                      <Row gutter={[16, 16]}>
-                        {fields.map(([key, value]) => (
-                          <Col xs={24} sm={12} lg={8} key={key}>
-                            <div className="group p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/50 dark:border-gray-600/50 hover:border-blue-300 dark:hover:border-blue-500 transition-all duration-300 hover:shadow-md">
-                              <div className="flex items-start gap-3">
-                                <div className="mt-1 p-2 rounded-lg bg-white dark:bg-gray-400 shadow-sm">
-                                  {getFieldIcon(key)}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                                    {formatFieldName(key)}
-                                  </p>
-                                  <div className="group-hover:scale-105 transition-transform duration-200">
-                                    {renderValue(key, value)}
+                    return (
+                      <div key={groupName} className="mb-8 last:mb-0">
+                        <h5 className="text-md font-medium text-gray-700 dark:text-gray-300 mb-4 pb-2 border-b border-gray-200 dark:border-gray-600">
+                          {groupName}
+                        </h5>
+                        <Row gutter={[16, 16]}>
+                          {fields.map(([key, value]) => (
+                            <Col xs={24} sm={12} lg={8} key={key}>
+                              <div className="group p-4 rounded-xl bg-gray-50 dark:bg-gray-700/50 border border-gray-200/50 dark:border-gray-600/50 hover:border-blue-300 dark:hover:border-blue-500 transition-all duration-300 hover:shadow-md">
+                                <div className="flex items-start gap-3">
+                                  <div className="mt-1 p-2 rounded-lg bg-white dark:bg-gray-400 shadow-sm">
+                                    {getFieldIcon(key)}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                                      {formatFieldName(key)}
+                                    </p>
+                                    <div className="group-hover:scale-105 transition-transform duration-200">
+                                      {renderValue(key, value)}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                          </Col>
-                        ))}
-                      </Row>
-                    </div>
-                  );
-                });
+                            </Col>
+                          ))}
+                        </Row>
+                      </div>
+                    );
+                  }
+                );
               })()}
             </div>
           </div>

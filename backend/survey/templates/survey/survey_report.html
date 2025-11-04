@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Survey Report</title>
+    <style>
+      /* ---------- Page Setup (WeasyPrint-safe) ---------- */
+      @page {
+        size: A4;
+        margin: 12mm 12mm 16mm 12mm;
+        /* Page number footer */
+        @bottom-center {
+          content: "Page " counter(page) " of " counter(pages);
+          font-size: 9px;
+          color: #666;
+        }
+        /* Static generated date (we inject via Django) */
+        @bottom-right {
+          content: "Generated: {{ survey.created_at|date:'d-m-Y H:i' }}";
+          font-size: 9px;
+          color: #666;
+        }
+      }
+
+      html,
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Inter, Arial, sans-serif;
+        font-size: 10px;
+        color: #2b2b2b;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      /* Stick to properties WeasyPrint supports well */
+      table,
+      tr,
+      td,
+      th {
+        page-break-inside: avoid;
+      }
+      h1,
+      h2,
+      h3,
+      p,
+      table {
+        margin: 0;
+        padding: 0;
+      }
+
+      /* ---------- Utilities ---------- */
+      .container {
+        display: block;
+      }
+      .muted {
+        color: #666;
+      }
+      .small {
+        font-size: 9px;
+      }
+      .xsmall {
+        font-size: 8px;
+      }
+      .center {
+        text-align: center;
+      }
+      .right {
+        text-align: right;
+      }
+      .mb-2 {
+        margin-bottom: 2mm;
+      }
+      .mb-4 {
+        margin-bottom: 4mm;
+      }
+      .mt-4 {
+        margin-top: 4mm;
+      }
+
+      /* ---------- Header ---------- */
+      .doc-header {
+        display: table;
+        width: 100%;
+        border-bottom: 1px solid #d9d9d9;
+        padding-bottom: 4mm;
+        margin-bottom: 4mm;
+      }
+      .doc-header .cell {
+        display: table-cell;
+        vertical-align: middle;
+        width: 33%;
+      }
+      .brand-logo,
+      .qr {
+        width: 28mm;
+        height: 28mm;
+        object-fit: contain;
+        border: 1px solid #eee;
+        padding: 2mm;
+      }
+      .title-block {
+        text-align: center;
+      }
+      .title-block h1 {
+        font-size: 16px;
+        letter-spacing: 0.2px;
+        color: #714f2a; /* warm municipal accent */
+        margin: 0 0 2mm 0;
+      }
+
+      /* ---------- Section Box ---------- */
+      .section {
+        border: 1px solid #e6decf;
+        border-radius: 4px;
+        margin-bottom: 4mm;
+        overflow: hidden;
+        background: #fff;
+      }
+      .section-header {
+        background: #8b6f47;
+        color: #fff;
+        font-weight: 600;
+        padding: 3mm 4mm;
+        letter-spacing: 0.2px;
+      }
+      .section-body {
+        padding: 3mm 4mm;
+      }
+
+      /* ---------- Tables ---------- */
+      table.data {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      .data th,
+      .data td {
+        border: 1px solid #e6e6e6;
+        padding: 2.5mm 2mm;
+        vertical-align: top;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+      }
+      .data th {
+        background: #f7efe3;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 9px;
+        letter-spacing: 0.2px;
+        text-align: center;
+      }
+      .label {
+        width: 30%;
+        background: #faf8f3;
+        font-weight: 600;
+        color: #4a3a27;
+      }
+      .value {
+        color: #1f1f1f;
+      }
+
+      /* ---------- Signatures ---------- */
+      .signatures {
+        display: table;
+        width: 100%;
+        margin-top: 8mm;
+      }
+      .signatures .sig {
+        display: table-cell;
+        width: 50%;
+        vertical-align: top;
+        padding: 0 5mm 0 0;
+      }
+      .sig .line {
+        border-top: 1px dashed #bdbdbd;
+        padding-top: 6mm;
+        text-align: center;
+      }
+      .sig .label {
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <header class="doc-header">
+        <div class="cell" style="text-align: left">
+          {% if municipality_logo_url %}
+          <img
+            class="brand-logo"
+            src="{{ municipality_logo_url }}"
+            alt="Logo"
+          />
+          {% endif %}
+        </div>
+
+        <div class="cell title-block">
+          <h1>Shirur Nagarparishad</h1>
+          <p class="muted small">Water Supply — Property Survey Report</p>
+          <p class="xsmall muted">
+            Date: {{ survey.created_at|date:"d-m-Y" }} &nbsp;|&nbsp; Survey ID:
+            {{ survey.id }}
+          </p>
+        </div>
+
+        <div class="cell" style="text-align: right">
+          {% if qr_code_url %}
+          <img class="qr" src="{{ qr_code_url }}" alt="QR" />
+          {% endif %}
+        </div>
+      </header>
+
+      <!-- Property Info -->
+      <section class="section">
+        <div class="section-header">Property Information</div>
+        <div class="section-body">
+          <table class="data">
+            <tr>
+              <td class="label">Ward No</td>
+              <td class="value">{{ survey.ward_no|default:"-" }}</td>
+              <td class="label">Property No</td>
+              <td class="value">{{ survey.property_no|default:"-" }}</td>
+            </tr>
+            <tr>
+              <td class="label">Old Ward No</td>
+              <td class="value">{{ survey.old_ward_no|default:"-" }}</td>
+              <td class="label">Old Property No</td>
+              <td class="value">{{ survey.old_property_no|default:"-" }}</td>
+            </tr>
+            <tr>
+              <td class="label">Property Type</td>
+              <td class="value" colspan="3">
+                {{ survey.property_type|default:"-" }}
+              </td>
+            </tr>
+            <tr>
+              <td class="label">Address</td>
+              <td class="value" colspan="3">
+                {{ survey.address|default:"-" }}
+              </td>
+            </tr>
+          </table>
+        </div>
+      </section>
+
+      <!-- Owner Info -->
+      <section class="section">
+        <div class="section-header">Owner Information</div>
+        <div class="section-body">
+          <table class="data">
+            <tr>
+              <td class="label">Owner Name</td>
+              <td class="value" colspan="3">
+                {{ survey.property_owner_name|default:"-" }}
+              </td>
+            </tr>
+            <tr>
+              <td class="label">Contact</td>
+              <td class="value">
+                {{ survey.pipe_holder_contact|default:"-" }}
+              </td>
+              <td class="label">Created By</td>
+              <td class="value xsmall">
+                {{ survey.created_by.email|default:"-" }}
+              </td>
+            </tr>
+          </table>
+        </div>
+      </section>
+
+      <!-- Water Connection -->
+      <section class="section">
+        <div class="section-header">Water Connection</div>
+        <div class="section-body">
+          <table class="data">
+            <tr>
+              <td class="label">Available</td>
+              <td class="value">
+                {{ survey.water_connection_available|default:"-" }}
+              </td>
+              <td class="label">Connection Owner</td>
+              <td class="value">
+                {{ survey.water_connection_owner_name|default:"-" }}
+              </td>
+            </tr>
+            <tr>
+              <td class="label">Holder Name</td>
+              <td class="value">{{ survey.pipe_holder_name|default:"-" }}</td>
+              <td class="label">Contact</td>
+              <td class="value">
+                {{ survey.pipe_holder_contact|default:"-" }}
+              </td>
+            </tr>
+            <tr>
+              <td class="label">Connection Type</td>
+              <td class="value">{{ survey.connection_type|default:"-" }}</td>
+              <td class="label">Connection No</td>
+              <td class="value">{{ survey.connection_number|default:"-" }}</td>
+            </tr>
+            <tr>
+              <td class="label">Size</td>
+              <td class="value">{{ survey.connection_size|default:"-" }}</td>
+              <td class="label">No. of Connections</td>
+              <td class="value">
+                {{ survey.number_of_water_connections|default:"-" }}
+              </td>
+            </tr>
+            <tr>
+              <td class="label">Old Connection No</td>
+              <td class="value" colspan="3">
+                {{ survey.old_connection_number|default:"-" }}
+              </td>
+            </tr>
+          </table>
+        </div>
+      </section>
+
+      <!-- Tax -->
+      <section class="section">
+        <div class="section-header">Tax Summary</div>
+        <div class="section-body">
+          <table class="data">
+            <tr>
+              <th>Pending</th>
+              <th>Current</th>
+              <th>Total</th>
+            </tr>
+            <tr>
+              <td class="center">{{ survey.pending_tax|default:"-" }}</td>
+              <td class="center">{{ survey.current_tax|default:"-" }}</td>
+              <td class="center">{{ survey.total_tax|default:"-" }}</td>
+            </tr>
+          </table>
+        </div>
+      </section>
+
+      <!-- Remarks -->
+      <section class="section">
+        <div class="section-header">Remarks</div>
+        <div class="section-body">
+          <table class="data">
+            <tr>
+              <td class="value xsmall">{{ survey.remarks|default:"-" }}</td>
+            </tr>
+          </table>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

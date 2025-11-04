@@ -40,24 +40,26 @@ export const exportSurveysToExcelService = async (exportParams: {
 }) => {
   try {
     const response = await api.post("surveys/export-excel/", exportParams, {
-      responseType: 'blob',
+      responseType: "blob",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       timeout: 60000,
     });
     return response.data;
   } catch (error: any) {
     if (error.response?.status === 404) {
-      throw new Error('No data found for the specified ward and property range');
+      throw new Error(
+        "No data found for the specified ward and property range"
+      );
     } else if (error.response?.status === 400) {
-      throw new Error('Invalid parameters provided');
+      throw new Error("Invalid parameters provided");
     } else if (error.response?.status === 500) {
-      throw new Error('Server error occurred during export');
-    } else if (error.code === 'ECONNABORTED') {
-      throw new Error('Export timeout - please try with smaller range');
+      throw new Error("Server error occurred during export");
+    } else if (error.code === "ECONNABORTED") {
+      throw new Error("Export timeout - please try with smaller range");
     } else {
-      throw new Error('Failed to export data. Please try again.');
+      throw new Error("Failed to export data. Please try again.");
     }
   }
 };
@@ -66,31 +68,35 @@ export const exportSurveysToExcelService = async (exportParams: {
 export const importSurveysFromExcelService = async (excelFile: File) => {
   try {
     const formData = new FormData();
-    formData.append('excel_file', excelFile);
-    
+    formData.append("excel_file", excelFile);
+
     const response = await api.post("surveys/import-excel/", formData, {
-      headers: { 
-        "Content-Type": "multipart/form-data" 
+      headers: {
+        "Content-Type": "multipart/form-data",
       },
       timeout: 120000,
     });
-    
+
     return response.data;
   } catch (error: any) {
     if (error.response?.status === 400) {
       const errorData = error.response.data;
       if (errorData.missing_columns) {
-        throw new Error(`Missing required columns: ${errorData.missing_columns.join(', ')}`);
+        throw new Error(
+          `Missing required columns: ${errorData.missing_columns.join(", ")}`
+        );
       }
-      throw new Error(errorData.message || 'Invalid file format or data');
+      throw new Error(errorData.message || "Invalid file format or data");
     } else if (error.response?.status === 413) {
-      throw new Error('File size too large. Please upload smaller file.');
+      throw new Error("File size too large. Please upload smaller file.");
     } else if (error.response?.status === 500) {
-      throw new Error('Server error occurred during import');
-    } else if (error.code === 'ECONNABORTED') {
-      throw new Error('Import timeout - please try with smaller file');
+      throw new Error("Server error occurred during import");
+    } else if (error.code === "ECONNABORTED") {
+      throw new Error("Import timeout - please try with smaller file");
     } else {
-      throw new Error('Failed to import data. Please check file format and try again.');
+      throw new Error(
+        "Failed to import data. Please check file format and try again."
+      );
     }
   }
 };
@@ -99,19 +105,19 @@ export const importSurveysFromExcelService = async (excelFile: File) => {
 export const downloadExcelTemplateService = async () => {
   try {
     const response = await api.get("surveys/download-template/", {
-      responseType: 'blob',
+      responseType: "blob",
       timeout: 30000,
     });
     return response.data;
   } catch (error: any) {
     if (error.response?.status === 404) {
-      throw new Error('Template service not available');
+      throw new Error("Template service not available");
     } else if (error.response?.status === 500) {
-      throw new Error('Server error occurred while generating template');
-    } else if (error.code === 'ECONNABORTED') {
-      throw new Error('Template download timeout');
+      throw new Error("Server error occurred while generating template");
+    } else if (error.code === "ECONNABORTED") {
+      throw new Error("Template download timeout");
     } else {
-      throw new Error('Failed to download template. Please try again.');
+      throw new Error("Failed to download template. Please try again.");
     }
   }
 };
@@ -119,11 +125,32 @@ export const downloadExcelTemplateService = async () => {
 // 📤 Helper function to download blob as file
 export const downloadExcelFile = (blob: Blob, filename: string) => {
   const url = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = url;
   link.download = filename;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   window.URL.revokeObjectURL(url);
+};
+
+export const downloadSurveyReport = async (surveyId: number) => {
+  try {
+    const response = await api.get(
+      `/surveys/${surveyId}/download-report/`,
+      {
+        responseType: "blob",
+      }
+    );
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `Survey-Report-${surveyId}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode?.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    throw error;
+  }
 };
