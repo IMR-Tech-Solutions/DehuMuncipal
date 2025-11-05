@@ -49,28 +49,25 @@ const SurveyView = () => {
 
   const formatFieldName = (key: string) => {
     const specialFormats: { [key: string]: string } = {
+      old_connection_number: "Old Connection Number",
       ward_no: "Ward Number",
       property_no: "Property Number",
-      old_ward_no: "Old Ward Number",
-      old_property_no: "Old Property Number",
       property_description: "Property Description",
       property_owner_name: "Property Owner Name",
+      property_owner_name_marathi: "मालक नाव (मराठी)",
       property_type: "Property Type",
-      address: "Address",
-      address_marathi: "पत्ता (मराठी)",
-      water_connection_available: "Water Connection Available",
-      pipe_holder_name: "Pipe Holder Name",
+      water_connection_owner_name: "Connection Owner Name",
+      water_connection_owner_name_marathi: "कनेक्शन मालक नाव (मराठी)",
       connection_type: "Connection Type",
-      connection_number: "Connection Number",
+      new_connection_number: "New Connection Number",
       connection_size: "Connection Size",
       number_of_water_connections: "Number of Water Connections",
-      pipe_holder_contact: "Pipe Holder Contact",
-      connection_photo: "Connection Photo",
-      old_connection_number: "Old Connection Number",
-      water_connection_owner_name: "Water Connection Owner Name",
+      mobile_number: "Mobile Number",
+      address: "Address",
       pending_tax: "Pending Tax",
       current_tax: "Current Tax",
       total_tax: "Total Tax",
+      connection_photo: "Connection Photo",
       remarks: "Remarks",
       remarks_marathi: "टिप्पणी (मराठी)",
       created_at: "Created At",
@@ -86,30 +83,29 @@ const SurveyView = () => {
 
   const getFieldIcon = (key: string) => {
     const iconMap: { [key: string]: React.ReactNode } = {
+      old_connection_number: <NumberOutlined className="text-gray-500" />,
       ward_no: <NumberOutlined className="text-blue-500" />,
       property_no: <HomeOutlined className="text-blue-500" />,
-      old_ward_no: <NumberOutlined className="text-gray-500" />,
-      old_property_no: <HomeOutlined className="text-gray-500" />,
       property_description: <FileTextOutlined className="text-purple-500" />,
       property_owner_name: <UserOutlined className="text-cyan-500" />,
+      property_owner_name_marathi: <UserOutlined className="text-cyan-400" />,
       property_type: <HomeOutlined className="text-orange-500" />,
-      address: <EnvironmentOutlined className="text-orange-500" />,
-      address_marathi: <EnvironmentOutlined className="text-orange-500" />,
-      water_connection_available: <UserOutlined className="text-blue-400" />,
-      pipe_holder_name: <UserOutlined className="text-pink-500" />,
+      water_connection_owner_name: <IdcardOutlined className="text-teal-500" />,
+      water_connection_owner_name_marathi: (
+        <IdcardOutlined className="text-teal-400" />
+      ),
       connection_type: <FileTextOutlined className="text-blue-600" />,
-      connection_number: <NumberOutlined className="text-indigo-500" />,
+      new_connection_number: <NumberOutlined className="text-indigo-500" />,
       connection_size: <NumberOutlined className="text-teal-500" />,
       number_of_water_connections: <NumberOutlined className="text-lime-500" />,
-      pipe_holder_contact: <UserOutlined className="text-rose-500" />,
-      connection_photo: <FileTextOutlined className="text-violet-500" />,
-      old_connection_number: <NumberOutlined className="text-gray-500" />,
-      water_connection_owner_name: <IdcardOutlined className="text-teal-500" />,
+      mobile_number: <UserOutlined className="text-rose-500" />,
+      address: <EnvironmentOutlined className="text-orange-500" />,
       pending_tax: <DollarOutlined className="text-emerald-500" />,
       current_tax: <DollarOutlined className="text-emerald-500" />,
       total_tax: <DollarOutlined className="text-emerald-600" />,
+      connection_photo: <FileTextOutlined className="text-violet-500" />,
       remarks: <FileTextOutlined className="text-gray-500" />,
-      remarks_marathi: <FileTextOutlined className="text-gray-500" />,
+      remarks_marathi: <FileTextOutlined className="text-gray-400" />,
       created_at: <CalendarOutlined className="text-green-500" />,
       updated_at: <CalendarOutlined className="text-green-500" />,
       created_by: <UserOutlined className="text-indigo-500" />,
@@ -156,16 +152,6 @@ const SurveyView = () => {
       }
     }
 
-    // Yes/No labels
-    if (typeof value === "string") {
-      if (value.toLowerCase() === "yes") {
-        return <Tag color="green">Yes</Tag>;
-      }
-      if (value.toLowerCase() === "no") {
-        return <Tag color="red">No</Tag>;
-      }
-    }
-
     // Decimal-like money fields: format to 2 decimals
     if (isDecimalLike(key)) {
       const asNumber = typeof value === "number" ? value : Number(value);
@@ -192,54 +178,65 @@ const SurveyView = () => {
     return key === "id";
   };
 
-  // Group fields including new ones
+  // Group fields - EXACT SEQUENCE
   const groupFields = (fields: [string, any][]) => {
     const groups = {
+      "Connection History": [] as [string, any][],
       "Property Information": [] as [string, any][],
-      "Property Owner Information": [] as [string, any][],
-      "Address Information": [] as [string, any][],
-      "Water Connection Details": [] as [string, any][],
+      "Property Owner": [] as [string, any][],
+      "Property Type": [] as [string, any][],
+      "Water Connection Owner": [] as [string, any][],
+      "Connection Details": [] as [string, any][],
+      Address: [] as [string, any][],
       "Tax Information": [] as [string, any][],
+      "Connection Photo": [] as [string, any][],
       Remarks: [] as [string, any][],
       "System Information": [] as [string, any][],
     };
 
-    const propertyFields = [
-      "ward_no",
-      "property_no",
-      "old_ward_no",
-      "old_property_no",
-      "property_description",
+    const connectionHistoryFields = ["old_connection_number"];
+    const propertyFields = ["ward_no", "property_no", "property_description"];
+    const propertyOwnerFields = [
+      "property_owner_name",
+      "property_owner_name_marathi",
     ];
-    const propertyOwnerFields = ["property_owner_name", "property_type"];
-    const addressFields = ["address", "address_marathi"];
-    const waterFields = [
-      "water_connection_available",
-      "pipe_holder_name",
+    const propertyTypeFields = ["property_type"];
+    const waterOwnerFields = [
+      "water_connection_owner_name",
+      "water_connection_owner_name_marathi",
+    ];
+    const connectionFields = [
       "connection_type",
-      "connection_number",
+      "new_connection_number",
       "connection_size",
       "number_of_water_connections",
-      "pipe_holder_contact",
-      "connection_photo",
-      "old_connection_number",
-      "water_connection_owner_name",
+      "mobile_number",
     ];
+    const addressFields = ["address"];
     const taxFields = ["pending_tax", "current_tax", "total_tax"];
+    const photoFields = ["connection_photo"];
     const remarkFields = ["remarks", "remarks_marathi"];
     const systemFields = ["created_at", "updated_at", "created_by"];
 
     fields.forEach(([key, value]) => {
-      if (propertyFields.includes(key)) {
+      if (connectionHistoryFields.includes(key)) {
+        groups["Connection History"].push([key, value]);
+      } else if (propertyFields.includes(key)) {
         groups["Property Information"].push([key, value]);
       } else if (propertyOwnerFields.includes(key)) {
-        groups["Property Owner Information"].push([key, value]);
+        groups["Property Owner"].push([key, value]);
+      } else if (propertyTypeFields.includes(key)) {
+        groups["Property Type"].push([key, value]);
+      } else if (waterOwnerFields.includes(key)) {
+        groups["Water Connection Owner"].push([key, value]);
+      } else if (connectionFields.includes(key)) {
+        groups["Connection Details"].push([key, value]);
       } else if (addressFields.includes(key)) {
-        groups["Address Information"].push([key, value]);
-      } else if (waterFields.includes(key)) {
-        groups["Water Connection Details"].push([key, value]);
+        groups["Address"].push([key, value]);
       } else if (taxFields.includes(key)) {
         groups["Tax Information"].push([key, value]);
+      } else if (photoFields.includes(key)) {
+        groups["Connection Photo"].push([key, value]);
       } else if (remarkFields.includes(key)) {
         groups["Remarks"].push([key, value]);
       } else if (systemFields.includes(key)) {
@@ -299,7 +296,7 @@ const SurveyView = () => {
             {/* Title + Info */}
             <div className="order-3 xl:order-2">
               <h4 className="mb-2 text-lg font-semibold text-center text-gray-800 dark:text-white/90 xl:text-left">
-                Property Survey - Ward {survey?.ward_no}, Property{" "}
+                Water Connection Survey - Ward {survey?.ward_no}, Property{" "}
                 {survey?.property_no}
               </h4>
               <div className="flex flex-col items-center gap-1 text-center xl:flex-row xl:gap-3 xl:text-left">
@@ -313,20 +310,6 @@ const SurveyView = () => {
                       Created:{" "}
                       {new Date(survey.created_at).toLocaleDateString("en-IN")}
                     </p>
-                  </>
-                )}
-                {survey?.water_connection_available && (
-                  <>
-                    <div className="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
-                    <Tag
-                      color={
-                        survey.water_connection_available === "Yes"
-                          ? "green"
-                          : "red"
-                      }
-                    >
-                      Water: {survey.water_connection_available}
-                    </Tag>
                   </>
                 )}
                 {typeof survey?.total_tax !== "undefined" &&
