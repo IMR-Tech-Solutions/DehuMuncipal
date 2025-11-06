@@ -8,7 +8,7 @@ import {
 } from "../../services/surveyservices";
 import { handleError } from "../../utils/handleError";
 import { toast } from "react-toastify";
-import { Spin, Tag, Row, Col, Button } from "antd";
+import { Spin, Row, Col, Button } from "antd";
 import {
   ArrowLeftOutlined,
   HomeOutlined,
