@@ -105,28 +105,28 @@ WSGI_APPLICATION = 'lohamuncipal.wsgi.application'
 # }
 
 #Localhost Postgresql Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'dehumunicipal',
-        'USER': 'postgres',
-        'PASSWORD':'root',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
-}
-
-# Server Postgresql Database
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.postgresql',
 #         'NAME': 'dehumunicipal',
-#         'USER': 'dehumunicipal',
-#         'PASSWORD':'Admin@_2223',
+#         'USER': 'postgres',
+#         'PASSWORD':'root',
 #         'HOST': 'localhost',
 #         'PORT': '5432',
 #     }
 # }
+
+# Server Postgresql Database
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'dehumunicipal',
+        'USER': 'dehumunicipal',
+        'PASSWORD':'Admin@_2223',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
