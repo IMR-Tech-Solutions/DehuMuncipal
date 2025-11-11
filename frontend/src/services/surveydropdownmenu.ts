@@ -98,6 +98,6 @@ export const connectionSizes = [
   "2 inch",
 ];
 
-export const propertyTypeOptions = ["घरगुती", "अपार्टमेंट", "बहुमजली इमारत"];
+export const propertyTypeOptions = ["घरगुती", "अनिवासी", "औद्योगिक", "अपार्टमेंट", "बहुमजली इमारत"];
 
 export const connectionTypeOptions = ["अधिकृत", "अनधिकृत"];

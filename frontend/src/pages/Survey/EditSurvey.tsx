@@ -134,12 +134,11 @@ interface SurveyFormData {
   water_connection_owner_name: string;
   water_connection_owner_name_marathi: string;
   connection_type: string;
-  new_connection_number: string;
   connection_size: string;
   number_of_water_connections: string;
   mobile_number: string;
   address: string;
-  ward_name: string;
+  address_marathi: string;
   road_name: string;
   pincode: string;
   pending_tax: string;
@@ -170,12 +169,11 @@ const EditSurvey = () => {
     water_connection_owner_name: "",
     water_connection_owner_name_marathi: "",
     connection_type: "",
-    new_connection_number: "",
     connection_size: "",
     number_of_water_connections: "",
     mobile_number: "",
     address: "",
-    ward_name: "",
+    address_marathi: "",
     road_name: "",
     pincode: "",
     pending_tax: "",
@@ -235,13 +233,12 @@ const EditSurvey = () => {
         water_connection_owner_name_marathi:
           surveyData.water_connection_owner_name_marathi || "",
         connection_type: surveyData.connection_type || "",
-        new_connection_number: surveyData.new_connection_number || "",
         connection_size: surveyData.connection_size || "",
         number_of_water_connections:
           surveyData.number_of_water_connections?.toString() || "",
         mobile_number: surveyData.mobile_number || "",
         address: surveyData.address || "",
-        ward_name: surveyData.ward_name || "",
+        address_marathi: surveyData.address_marathi || "",
         road_name: surveyData.road_name || "",
         pincode: surveyData.pincode || "",
         pending_tax: surveyData.pending_tax?.toString() || "",
@@ -303,6 +300,7 @@ const EditSurvey = () => {
     const englishToMarathiMap: Record<string, string> = {
       property_owner_name: "property_owner_name_marathi",
       water_connection_owner_name: "water_connection_owner_name_marathi",
+      address: "address_marathi",
       remarks: "remarks_marathi",
     };
 
@@ -329,6 +327,11 @@ const EditSurvey = () => {
       const submitData = new FormData();
       Object.keys(formData).forEach((key) => {
         const value = formData[key as keyof SurveyFormData];
+
+        if (key === "connection_photo" && typeof value === "string") {
+          return;
+        }
+
         if (value instanceof File) {
           submitData.append(key, value);
         } else if (value !== null && value !== "") {
@@ -450,7 +453,7 @@ const EditSurvey = () => {
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Property Information
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <InputField
                   label="Ward No"
                   placeholder="Enter Ward No"
@@ -460,13 +463,7 @@ const EditSurvey = () => {
                   onChange={handleChange}
                   required
                 />
-                <InputField
-                  label="Ward Name"
-                  name="ward_name"
-                  value={formData.ward_name}
-                  onChange={handleChange}
-                  placeholder="Enter ward name"
-                />
+
                 <InputField
                   label="Property No"
                   placeholder="Enter Property No"
@@ -530,27 +527,27 @@ const EditSurvey = () => {
                 />
               </div>
             </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <InputField
-                  label="Water Connection Owner Name (English)"
-                  placeholder="Enter connection owner name"
-                  name="water_connection_owner_name"
-                  value={formData.water_connection_owner_name}
-                  onChange={handleChange}
-                />
-                <InputField
-                  label="पाणी कनेक्शन मालक नाव (मराठी)"
-                  placeholder="मालक नाव टाका (auto-filled)"
-                  name="water_connection_owner_name_marathi"
-                  value={formData.water_connection_owner_name_marathi}
-                  onChange={handleChange}
-                  isMarathi={true}
-                />
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <InputField
+                label="Water Connection Owner Name (English)"
+                placeholder="Enter connection owner name"
+                name="water_connection_owner_name"
+                value={formData.water_connection_owner_name}
+                onChange={handleChange}
+              />
+              <InputField
+                label="पाणी कनेक्शन मालक नाव (मराठी)"
+                placeholder="मालक नाव टाका (auto-filled)"
+                name="water_connection_owner_name_marathi"
+                value={formData.water_connection_owner_name_marathi}
+                onChange={handleChange}
+                isMarathi={true}
+              />
+            </div>
 
             {/* 10-12. Connection Details */}
             <div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <InputField
                   label="Connection Type"
                   name="connection_type"
@@ -560,13 +557,7 @@ const EditSurvey = () => {
                   options={connectionTypeOptions}
                   placeholder="Select connection type"
                 />
-                <InputField
-                  label="New Connection Number"
-                  placeholder="Enter new connection number"
-                  name="new_connection_number"
-                  value={formData.new_connection_number}
-                  onChange={handleChange}
-                />
+
                 <InputField
                   label="Connection Size"
                   name="connection_size"
@@ -621,7 +612,7 @@ const EditSurvey = () => {
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Address
               </h3>
-              <div className="grid grid-cols-1 gap-5">
+              <div className="grid grid-cols-2 gap-5">
                 <InputField
                   label="Address"
                   name="address"
@@ -629,6 +620,14 @@ const EditSurvey = () => {
                   onChange={handleChange}
                   type="textarea"
                   placeholder="Enter full address"
+                />
+                <InputField
+                  label="पत्ता (मराठी)"
+                  name="address_marathi"
+                  value={formData.address_marathi}
+                  onChange={handleChange}
+                  type="textarea"
+                  placeholder="पत्ता टाका (auto-filled)"
                 />
               </div>
               <div className="grid grid-cols-2 gap-5">
@@ -684,7 +683,6 @@ const EditSurvey = () => {
             </div>
 
             {/* 19. Connection Photo */}
-            
 
             {/* 20-21. Remarks */}
             <div>

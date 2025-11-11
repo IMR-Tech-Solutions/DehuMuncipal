@@ -405,16 +405,6 @@ const Surveys = () => {
       render: (address: string) => address || "N/A",
     },
     {
-      title: "Water Connection",
-      dataIndex: "water_connection_available",
-      key: "water_connection_available",
-      render: (value: string) => (
-        <Tag color={value === "Yes" ? "cyan" : "default"}>
-          {value || "N/A"}
-        </Tag>
-      ),
-    },
-    {
       title: "Created By",
       dataIndex: "created_by",
       key: "created_by",

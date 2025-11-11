@@ -60,12 +60,11 @@ const SurveyView = () => {
       water_connection_owner_name: "Connection Owner Name",
       water_connection_owner_name_marathi: "कनेक्शन मालक नाव (मराठी)",
       connection_type: "Connection Type",
-      new_connection_number: "New Connection Number",
       connection_size: "Connection Size",
       number_of_water_connections: "Number of Water Connections",
       mobile_number: "Mobile Number",
       address: "Address",
-      road_name: "Road Name",
+      address_marathi: "पत्ता (मराठी)",
       pincode: "Pincode",
       pending_tax: "Pending Tax",
       current_tax: "Current Tax",
@@ -87,7 +86,6 @@ const SurveyView = () => {
     const iconMap: { [key: string]: React.ReactNode } = {
       old_connection_number: <NumberOutlined className="text-gray-500" />,
       ward_no: <NumberOutlined className="text-blue-500" />,
-      ward_name: <NumberOutlined className="text-blue-700" />,
       property_no: <HomeOutlined className="text-blue-500" />,
       property_type: <HomeOutlined className="text-orange-500" />,
       property_description: <FileTextOutlined className="text-purple-500" />,
@@ -98,11 +96,11 @@ const SurveyView = () => {
         <IdcardOutlined className="text-teal-400" />
       ),
       connection_type: <FileTextOutlined className="text-blue-600" />,
-      new_connection_number: <NumberOutlined className="text-indigo-500" />,
       connection_size: <NumberOutlined className="text-teal-500" />,
       number_of_water_connections: <NumberOutlined className="text-lime-500" />,
       mobile_number: <UserOutlined className="text-rose-500" />,
       address: <EnvironmentOutlined className="text-orange-500" />,
+      address_marathi: <EnvironmentOutlined className="text-blue-700" />,
       road_name: <EnvironmentOutlined className="text-green-500" />,
       pincode: <EnvironmentOutlined className="text-gray-500" />,
       pending_tax: <DollarOutlined className="text-emerald-500" />,
@@ -184,7 +182,6 @@ const SurveyView = () => {
       group: "Property Information",
       fields: [
         "ward_no",
-        "ward_name",
         "property_no",
         "property_type",
         "property_description",
@@ -200,7 +197,7 @@ const SurveyView = () => {
     },
     {
       group: "Connection Details",
-      fields: ["connection_type", "new_connection_number", "connection_size"],
+      fields: ["connection_type", "connection_size"],
     },
     {
       group: "Water Connection Mobile",
@@ -208,7 +205,7 @@ const SurveyView = () => {
     },
     {
       group: "Address",
-      fields: ["address", "road_name", "pincode"],
+      fields: ["address", "address_marathi", "pincode"],
     },
     {
       group: "Tax Information",

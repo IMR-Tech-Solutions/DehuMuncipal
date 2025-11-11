@@ -24,9 +24,11 @@ class Survey(models.Model):
         max_length=50,
         choices=[
             ('घरगुती', 'Residential'),
+            ('अनिवासी', 'Non-residential'),
+            ('औद्योगिक', 'Industrial'),
             ('अपार्टमेंट', 'Apartment'),
-            ('बहुमजली इमारत', 'Multi-story Building')
-        ],
+            ('बहुमजली इमारत', 'Multi-story Building'),
+    ],
         blank=True,
         null=True
     )
@@ -46,9 +48,6 @@ class Survey(models.Model):
         null=True
     )
     
-    # 9. New Connection Number
-    new_connection_number = models.CharField(max_length=50, blank=True, null=True, unique=True)
-    
     # 10. Connection Size
     connection_size = models.CharField(max_length=20, blank=True, null=True)
     
@@ -60,6 +59,7 @@ class Survey(models.Model):
     
     # 13. Address
     address = models.TextField(blank=True, null=True)
+    address_marathi = models.TextField(blank=True, null=True)
     
     # 14. Tax Information (Pending, Current, Total)
     pending_tax = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, default=0)
@@ -73,8 +73,6 @@ class Survey(models.Model):
     remarks = models.TextField(blank=True, null=True)
     remarks_marathi = models.TextField(blank=True, null=True)
 
-
-    ward_name = models.CharField(max_length=100, blank=True, null=True)
     road_name = models.CharField(max_length=200, blank=True, null=True)
     pincode = models.CharField(max_length=10, blank=True, null=True)
     

@@ -125,12 +125,11 @@ interface SurveyFormData {
   water_connection_owner_name: string;
   water_connection_owner_name_marathi: string;
   connection_type: string;
-  new_connection_number: string;
   connection_size: string;
   number_of_water_connections: string;
   mobile_number: string;
   address: string;
-  ward_name: string;
+  address_marathi: string;
   road_name: string;
   pincode: string;
   pending_tax: string;
@@ -156,12 +155,11 @@ const CreateSurvey = () => {
     water_connection_owner_name: "",
     water_connection_owner_name_marathi: "",
     connection_type: "",
-    new_connection_number: "",
     connection_size: "",
     number_of_water_connections: "",
     mobile_number: "",
     address: "",
-    ward_name: "",
+    address_marathi: "",
     road_name: "",
     pincode: "",
     pending_tax: "",
@@ -246,6 +244,7 @@ const CreateSurvey = () => {
     const englishToMarathiMap: Record<string, string> = {
       property_owner_name: "property_owner_name_marathi",
       water_connection_owner_name: "water_connection_owner_name_marathi",
+      address: "address_marathi",
       remarks: "remarks_marathi",
     };
 
@@ -304,12 +303,11 @@ const CreateSurvey = () => {
         water_connection_owner_name: "",
         water_connection_owner_name_marathi: "",
         connection_type: "",
-        new_connection_number: "",
         connection_size: "",
         number_of_water_connections: "",
         mobile_number: "",
         address: "",
-        ward_name: "",
+        address_marathi: "",
         road_name: "",
         pincode: "",
         pending_tax: "",
@@ -348,7 +346,7 @@ const CreateSurvey = () => {
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Property Information
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <InputField
                   label="Ward No"
                   placeholder="Enter Ward No"
@@ -357,13 +355,6 @@ const CreateSurvey = () => {
                   value={formData.ward_no}
                   onChange={handleChange}
                   required
-                />
-                <InputField
-                  label="Ward Name"
-                  name="ward_name"
-                  value={formData.ward_name}
-                  onChange={handleChange}
-                  placeholder="Enter ward name"
                 />
                 <InputField
                   label="Property No"
@@ -468,7 +459,7 @@ const CreateSurvey = () => {
               </label>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <InputField
                 label="Connection Type"
                 name="connection_type"
@@ -477,13 +468,6 @@ const CreateSurvey = () => {
                 type="select"
                 options={connectionTypeOptions}
                 placeholder="Select connection type"
-              />
-              <InputField
-                label="New Connection Number"
-                placeholder="Enter new connection number"
-                name="new_connection_number"
-                value={formData.new_connection_number}
-                onChange={handleChange}
               />
               <InputField
                 label="Connection Size"
@@ -539,7 +523,7 @@ const CreateSurvey = () => {
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Address
               </h3>
-              <div className="grid grid-cols-1 gap-5">
+              <div className="grid grid-cols-2 gap-5">
                 <InputField
                   label="Address"
                   name="address"
@@ -547,6 +531,14 @@ const CreateSurvey = () => {
                   onChange={handleChange}
                   type="textarea"
                   placeholder="Enter full address"
+                />
+                <InputField
+                  label="पत्ता (मराठी)"
+                  name="address_marathi"
+                  value={formData.address_marathi}
+                  onChange={handleChange}
+                  type="textarea"
+                  placeholder="पत्ता टाका (auto-filled)"
                 />
               </div>
               <div className="grid grid-cols-2 gap-5">
