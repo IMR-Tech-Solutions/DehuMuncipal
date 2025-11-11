@@ -22,7 +22,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 import pandas as pd
 from django.db import transaction
-
+from django.conf import settings
 # Set up logging
 logger = logging.getLogger(__name__)
 
@@ -290,6 +290,9 @@ class SurveyExcelExportView(APIView):
             "property_no",
             "old_ward_no",
             "old_property_no",
+            "ward_name",
+            "road_name",
+            "pincode",
             "property_description",
             "address",
             "address_marathi",
@@ -438,6 +441,9 @@ class SurveyExcelImportView(APIView):
                     # Prepare survey data
                     survey_data = {
                         "ward_no": int(ward_no) if pd.notna(ward_no) else None,
+                        "ward_name": str(row.get("ward_name", "")) if pd.notna(row.get("ward_name")) else "",
+                        "road_name": str(row.get("road_name", "")) if pd.notna(row.get("road_name")) else "",
+                        "pincode": str(row.get("pincode", "")) if pd.notna(row.get("pincode")) else "",
                         "property_no": str(property_no) if pd.notna(property_no) else None,
                         "old_ward_no": str(row.get("old_ward_no", "")) if pd.notna(row.get("old_ward_no")) else "",
                         "old_property_no": str(row.get("old_property_no", "")) if pd.notna(row.get("old_property_no")) else "",
@@ -497,6 +503,9 @@ class SurveyExcelTemplateDownloadView(APIView):
             # Headers
             headers = [
                 "ward_no",
+                "ward_name",
+                "road_name",
+                "pincode",
                 "property_no",
                 "old_ward_no",
                 "old_property_no",
@@ -516,6 +525,9 @@ class SurveyExcelTemplateDownloadView(APIView):
             sample_data = [
                 [
                     1,  # ward_no
+                    "Ward A",
+                    "Main Road",
+                    "412210",
                     101,  # property_no
                     "",  # old_ward_no
                     "",  # old_property_no
@@ -727,7 +739,6 @@ class SurveyStatsView(APIView):
             )
 
 
-
 #-----------------------------
 # Survey Report Generation View
 #------------------------------
@@ -743,14 +754,15 @@ class SurveyDownloadReportView(APIView):
         try:
             # Fetch survey
             survey = Survey.objects.get(id=survey_id)
+
             
             # Prepare context
             context = {
                 'survey': survey,
-                'municipality_name': 'शिरुर नगरपरिषद',
-                'municipality_english': 'Shirur Municipal Corporation',
+                'municipality_name': 'Dehu नगरपरिषद',
                 'ward_name': f'Ward {survey.ward_no}',
                 'property_info': f'Property {survey.property_no}',
+                "logo_url": request.build_absolute_uri(settings.MEDIA_URL + "images/logo.jpeg"),
             }
             
             # Render HTML template

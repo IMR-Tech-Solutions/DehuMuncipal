@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
@@ -26,6 +26,7 @@ interface InputFieldProps {
   required?: boolean;
   options?: string[];
   isMarathi?: boolean;
+  readOnly?: boolean;
 }
 
 const InputField = React.memo<InputFieldProps>(
@@ -39,6 +40,7 @@ const InputField = React.memo<InputFieldProps>(
     required = false,
     options = [],
     isMarathi = false,
+    readOnly = false,
   }) => {
     const inputId = `input-${name}`;
 
@@ -79,6 +81,7 @@ const InputField = React.memo<InputFieldProps>(
             }`}
             placeholder={placeholder}
             rows={3}
+            readOnly={readOnly}
           />
         ) : type === "file" ? (
           <input
@@ -100,6 +103,7 @@ const InputField = React.memo<InputFieldProps>(
               isMarathi ? "font-marathi" : ""
             }`}
             placeholder={placeholder}
+            readOnly={readOnly}
           />
         )}
       </div>
@@ -126,6 +130,9 @@ interface SurveyFormData {
   number_of_water_connections: string;
   mobile_number: string;
   address: string;
+  ward_name: string;
+  road_name: string;
+  pincode: string;
   pending_tax: string;
   current_tax: string;
   total_tax: string;
@@ -154,6 +161,9 @@ const CreateSurvey = () => {
     number_of_water_connections: "",
     mobile_number: "",
     address: "",
+    ward_name: "",
+    road_name: "",
+    pincode: "",
     pending_tax: "",
     current_tax: "",
     total_tax: "",
@@ -162,7 +172,10 @@ const CreateSurvey = () => {
     remarks_marathi: "",
   });
 
-  // Translation helper - AUTO-TRANSLATE TO MARATHI
+  // Single checkbox state for both owner name sync
+  const [sameOwnerNames, setSameOwnerNames] = useState(false);
+
+  // Translate helper - AUTO-TRANSLATE TO MARATHI
   const translateToMarathi = async (englishText: string) => {
     if (!englishText) return "";
     try {
@@ -179,7 +192,18 @@ const CreateSurvey = () => {
     }
   };
 
-  // Handle input change - WITH AUTO-TRANSLATION
+  // Auto-calculate total tax whenever pending/current tax changes
+  useEffect(() => {
+    const pending = parseFloat(formData.pending_tax) || 0;
+    const current = parseFloat(formData.current_tax) || 0;
+    const total = pending + current;
+    setFormData((prev) => ({
+      ...prev,
+      total_tax: total ? total.toString() : "",
+    }));
+  }, [formData.pending_tax, formData.current_tax]);
+
+  // Handle input change - WITH AUTO-TRANSLATION & CHECKBOX LOGIC
   const handleChange = async (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -202,6 +226,22 @@ const CreateSurvey = () => {
       return newData;
     });
 
+    // Sync water connection owner names if checkbox is checked and relevant fields changed
+    if (sameOwnerNames) {
+      if (name === "property_owner_name") {
+        setFormData((prev) => ({
+          ...prev,
+          water_connection_owner_name: value as string,
+        }));
+      }
+      if (name === "property_owner_name_marathi") {
+        setFormData((prev) => ({
+          ...prev,
+          water_connection_owner_name_marathi: value as string,
+        }));
+      }
+    }
+
     // Auto-translate to Marathi
     const englishToMarathiMap: Record<string, string> = {
       property_owner_name: "property_owner_name_marathi",
@@ -213,6 +253,14 @@ const CreateSurvey = () => {
       const marathiField = englishToMarathiMap[name];
       const translatedText = await translateToMarathi(value);
       setFormData((prev) => ({ ...prev, [marathiField]: translatedText }));
+
+      // If checkbox is checked, sync the translation to the water connection Marathi name field
+      if (name === "property_owner_name" && sameOwnerNames) {
+        setFormData((prev) => ({
+          ...prev,
+          water_connection_owner_name_marathi: translatedText,
+        }));
+      }
     }
   };
 
@@ -244,7 +292,7 @@ const CreateSurvey = () => {
       toast.success("Survey created successfully!");
       console.log("Survey Response:", result);
 
-      // Reset form
+      // Reset form and checkbox
       setFormData({
         old_connection_number: "",
         ward_no: "",
@@ -261,6 +309,9 @@ const CreateSurvey = () => {
         number_of_water_connections: "",
         mobile_number: "",
         address: "",
+        ward_name: "",
+        road_name: "",
+        pincode: "",
         pending_tax: "",
         current_tax: "",
         total_tax: "",
@@ -268,6 +319,7 @@ const CreateSurvey = () => {
         remarks: "",
         remarks_marathi: "",
       });
+      setSameOwnerNames(false);
     } catch (error) {
       console.error(error);
       handleError(error);
@@ -282,12 +334,6 @@ const CreateSurvey = () => {
       <PageBreadcrumb pageTitle="Create New Survey" />
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            Water Connection Survey
-          </h2>
-        </div>
-
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-6">
             {/* 1. Old Connection Number */}
@@ -295,15 +341,6 @@ const CreateSurvey = () => {
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Connection History
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <InputField
-                  label="Old Connection Number"
-                  placeholder="Enter old connection number"
-                  name="old_connection_number"
-                  value={formData.old_connection_number}
-                  onChange={handleChange}
-                />
-              </div>
             </div>
 
             {/* 2-4. Ward, Property, Description */}
@@ -322,6 +359,13 @@ const CreateSurvey = () => {
                   required
                 />
                 <InputField
+                  label="Ward Name"
+                  name="ward_name"
+                  value={formData.ward_name}
+                  onChange={handleChange}
+                  placeholder="Enter ward name"
+                />
+                <InputField
                   label="Property No"
                   placeholder="Enter Property No"
                   name="property_no"
@@ -329,23 +373,11 @@ const CreateSurvey = () => {
                   onChange={handleChange}
                   required
                 />
-                <InputField
-                  label="Property Description"
-                  name="property_description"
-                  value={formData.property_description}
-                  onChange={handleChange}
-                  type="select"
-                  options={propertyDescriptionOptions}
-                  placeholder="Select description"
-                />
               </div>
             </div>
 
             {/* 5-6. Property Owner */}
             <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                Property Owner
-              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <InputField
                   label="Owner Name (English)"
@@ -362,15 +394,6 @@ const CreateSurvey = () => {
                   onChange={handleChange}
                   isMarathi={true}
                 />
-              </div>
-            </div>
-
-            {/* 7. Property Type */}
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                Property Type
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <InputField
                   label="Property Type"
                   name="property_type"
@@ -380,73 +403,102 @@ const CreateSurvey = () => {
                   options={propertyTypeOptions}
                   placeholder="Select property type"
                 />
+                <InputField
+                  label="Property Description"
+                  name="property_description"
+                  value={formData.property_description}
+                  onChange={handleChange}
+                  type="select"
+                  options={propertyDescriptionOptions}
+                  placeholder="Select description"
+                />
               </div>
             </div>
 
             {/* 8-9. Water Connection Owner */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                Water Connection Owner
+                Connection Details
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <InputField
-                  label="Owner Name (English)"
-                  placeholder="Enter connection owner name"
-                  name="water_connection_owner_name"
-                  value={formData.water_connection_owner_name}
+                  label="Old Connection Number"
+                  placeholder="Enter old connection number"
+                  name="old_connection_number"
+                  value={formData.old_connection_number}
                   onChange={handleChange}
-                />
-                <InputField
-                  label="मालक नाव (मराठी)"
-                  placeholder="मालक नाव टाका (auto-filled)"
-                  name="water_connection_owner_name_marathi"
-                  value={formData.water_connection_owner_name_marathi}
-                  onChange={handleChange}
-                  isMarathi={true}
                 />
               </div>
             </div>
 
-            {/* 10. Connection Type */}
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                Connection Details
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <InputField
-                  label="Connection Type"
-                  name="connection_type"
-                  value={formData.connection_type}
-                  onChange={handleChange}
-                  type="select"
-                  options={connectionTypeOptions}
-                  placeholder="Select connection type"
+            {/* Water Connection Owner Names with single checkbox */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-center">
+              <InputField
+                label="Water Connection Owner Name (English)"
+                placeholder="Enter connection owner name"
+                name="water_connection_owner_name"
+                value={formData.water_connection_owner_name}
+                onChange={handleChange}
+              />
+              <InputField
+                label="पाणी कनेक्शन मालक नाव (मराठी)"
+                placeholder="मालक नाव टाका (auto-filled)"
+                name="water_connection_owner_name_marathi"
+                value={formData.water_connection_owner_name_marathi}
+                onChange={handleChange}
+                isMarathi={true}
+              />
+              <label className="flex items-center text-sm ml-2">
+                <input
+                  type="checkbox"
+                  checked={sameOwnerNames}
+                  onChange={(e) => {
+                    setSameOwnerNames(e.target.checked);
+                    if (e.target.checked) {
+                      setFormData((prev) => ({
+                        ...prev,
+                        water_connection_owner_name: prev.property_owner_name,
+                        water_connection_owner_name_marathi:
+                          prev.property_owner_name_marathi,
+                      }));
+                    }
+                  }}
                 />
-                {/* 11. New Connection Number */}
-                <InputField
-                  label="New Connection Number"
-                  placeholder="Enter new connection number"
-                  name="new_connection_number"
-                  value={formData.new_connection_number}
-                  onChange={handleChange}
-                />
-                {/* 12. Connection Size */}
-                <InputField
-                  label="Connection Size"
-                  name="connection_size"
-                  value={formData.connection_size}
-                  onChange={handleChange}
-                  type="select"
-                  options={connectionSizes}
-                  placeholder="Select connection size"
-                />
-              </div>
+                <span className="ml-1">Same as Owner Name / [translate:मालक नावासारखेच]</span>
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <InputField
+                label="Connection Type"
+                name="connection_type"
+                value={formData.connection_type}
+                onChange={handleChange}
+                type="select"
+                options={connectionTypeOptions}
+                placeholder="Select connection type"
+              />
+              <InputField
+                label="New Connection Number"
+                placeholder="Enter new connection number"
+                name="new_connection_number"
+                value={formData.new_connection_number}
+                onChange={handleChange}
+              />
+              <InputField
+                label="Connection Size"
+                name="connection_size"
+                value={formData.connection_size}
+                onChange={handleChange}
+                type="select"
+                options={connectionSizes}
+                placeholder="Select connection size"
+              />
             </div>
 
             {/* 13-14. Water Connection Details */}
             <div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* 13. Number of Connections */}
                 <InputField
                   label="Number of Water Connections"
                   placeholder="Enter number"
@@ -455,7 +507,6 @@ const CreateSurvey = () => {
                   value={formData.number_of_water_connections}
                   onChange={handleChange}
                 />
-                {/* 14. Mobile Number */}
                 <InputField
                   label="Mobile Number"
                   placeholder="Enter mobile number"
@@ -463,6 +514,22 @@ const CreateSurvey = () => {
                   name="mobile_number"
                   value={formData.mobile_number}
                   onChange={handleChange}
+                />
+              </div>
+            </div>
+
+            {/* 19. Connection Photo */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                Connection Photo
+              </h3>
+              <div className="grid grid-cols-1 gap-5">
+                <InputField
+                  label="Upload Photo"
+                  name="connection_photo"
+                  value={formData.connection_photo}
+                  onChange={handleChange}
+                  type="file"
                 />
               </div>
             </div>
@@ -480,6 +547,23 @@ const CreateSurvey = () => {
                   onChange={handleChange}
                   type="textarea"
                   placeholder="Enter full address"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-5">
+                <InputField
+                  label="Road Name"
+                  name="road_name"
+                  value={formData.road_name}
+                  onChange={handleChange}
+                  placeholder="Enter road name"
+                />
+                <InputField
+                  label="Pincode"
+                  name="pincode"
+                  value={formData.pincode}
+                  onChange={handleChange}
+                  placeholder="Enter pincode"
+                  type="text"
                 />
               </div>
             </div>
@@ -512,23 +596,8 @@ const CreateSurvey = () => {
                   value={formData.total_tax}
                   onChange={handleChange}
                   type="number"
-                  placeholder="Enter total tax"
-                />
-              </div>
-            </div>
-
-            {/* 19. Connection Photo */}
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                Connection Photo
-              </h3>
-              <div className="grid grid-cols-1 gap-5">
-                <InputField
-                  label="Upload Photo"
-                  name="connection_photo"
-                  value={formData.connection_photo}
-                  onChange={handleChange}
-                  type="file"
+                  placeholder="Total tax will be calculated automatically"
+                  readOnly
                 />
               </div>
             </div>

@@ -1,351 +1,444 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="mr">
   <head>
     <meta charset="UTF-8" />
-    <title>Survey Report</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ ulb.system_name }}</title>
     <style>
-      /* ---------- Page Setup (WeasyPrint-safe) ---------- */
+      @font-face {
+        font-family: 'Noto Sans Devanagari';
+        src: url('{{ regular_font_url }}') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: 'Noto Sans Devanagari';
+        src: url('{{ bold_font_url }}') format('truetype');
+        font-weight: bold;
+        font-style: normal;
+      }
       @page {
-        size: A4;
-        margin: 12mm 12mm 16mm 12mm;
-        /* Page number footer */
-        @bottom-center {
-          content: "Page " counter(page) " of " counter(pages);
-          font-size: 9px;
-          color: #666;
-        }
-        /* Static generated date (we inject via Django) */
-        @bottom-right {
-          content: "Generated: {{ survey.created_at|date:'d-m-Y H:i' }}";
-          font-size: 9px;
-          color: #666;
-        }
+        size: legal;
+        margin: 5mm 8mm;
       }
 
-      html,
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          Inter, Arial, sans-serif;
-        font-size: 10px;
-        color: #2b2b2b;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-
-      /* Stick to properties WeasyPrint supports well */
-      table,
-      tr,
-      td,
-      th {
-        page-break-inside: avoid;
-      }
-      h1,
-      h2,
-      h3,
-      p,
-      table {
+      * {
         margin: 0;
         padding: 0;
+        box-sizing: border-box;
       }
 
-      /* ---------- Utilities ---------- */
-      .container {
-        display: block;
-      }
-      .muted {
-        color: #666;
-      }
-      .small {
-        font-size: 9px;
-      }
-      .xsmall {
-        font-size: 8px;
-      }
-      .center {
-        text-align: center;
-      }
-      .right {
-        text-align: right;
-      }
-      .mb-2 {
-        margin-bottom: 2mm;
-      }
-      .mb-4 {
-        margin-bottom: 4mm;
-      }
-      .mt-4 {
-        margin-top: 4mm;
-      }
-
-      /* ---------- Header ---------- */
-      .doc-header {
-        display: table;
-        width: 100%;
-        border-bottom: 1px solid #d9d9d9;
-        padding-bottom: 4mm;
-        margin-bottom: 4mm;
-      }
-      .doc-header .cell {
-        display: table-cell;
-        vertical-align: middle;
-        width: 33%;
-      }
-      .brand-logo,
-      .qr {
-        width: 28mm;
-        height: 28mm;
-        object-fit: contain;
-        border: 1px solid #eee;
-        padding: 2mm;
-      }
-      .title-block {
-        text-align: center;
-      }
-      .title-block h1 {
-        font-size: 16px;
-        letter-spacing: 0.2px;
-        color: #714f2a; /* warm municipal accent */
-        margin: 0 0 2mm 0;
-      }
-
-      /* ---------- Section Box ---------- */
-      .section {
-        border: 1px solid #e6decf;
-        border-radius: 4px;
-        margin-bottom: 4mm;
-        overflow: hidden;
+       body {
+            font-family: "NotoSansDevanagari", "Noto Sans Devanagari", "Mangal",
+          sans-serif;
+        font-size: 11pt;
+        color: #000;
+        margin: 0;
+        padding: 0;
+        line-height: 1.35;
+        }
+        
+      .page {
+        border: 2.5px solid #800000;
+        padding: 6px 10px;
+        margin: 0;
         background: #fff;
-      }
-      .section-header {
-        background: #8b6f47;
-        color: #fff;
-        font-weight: 600;
-        padding: 3mm 4mm;
-        letter-spacing: 0.2px;
-      }
-      .section-body {
-        padding: 3mm 4mm;
+        border-radius: 0;
       }
 
-      /* ---------- Tables ---------- */
-      table.data {
+      .header {
+        display: flex;
+        align-items: center;
+        background: linear-gradient(135deg, #800000 0%, #800000 100%);
+        padding: 8px;
+        margin-bottom: 8px;
+        position: relative;
+      }
+
+      .logo {
+        width: 75px;
+        height: 75px;
+        background: white;
+        /* border-radius: 50%; */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 12px;
+        flex-shrink: 0;
+      }
+
+      .logo img {
+        width: 70px;
+        height: 70px;
+        /* border-radius: 50%; */
+      }
+
+      .header-content {
+        flex: 1;
+        color: white;
+        text-align: center;
+      }
+
+      .header-title {
+        font-size: 22px;
+        font-weight: 700;
+        margin-bottom: 2px;
+      }
+
+      .header-subtitle {
+        font-size: 11px;
+        line-height: 1.4;
+      }
+
+      .date-box {
+        grid-column: span 2;
+        position: absolute;
+        right: 0px;
+        top: -5px;
+        background: white;
+        padding: 4px 8px;
+        /* border: 1px solid #000; */
+        font-size: 10px;
+        text-align: end;
+      }
+
+      .date-box div {
+        margin: 2px 0;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(9, 1fr); 
+        gap: 1px;
+        margin: 4px 0;
+        font-size: 11px;
+      }
+
+      .info-grid-2 {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr); 
+        gap: 2px;
+        margin: 8px 0;
+        font-size: 11px;
+      }
+
+      .info-field.address-field {
+        grid-column: span 2;
+      }
+
+      .info-field {
+        padding: 3px;
+      }
+
+      .info-field label {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 2px;
+      }
+
+      .full-width {
+        grid-column: 1 / -1;
+      }
+
+      .notice-text {
+        border: 1px solid #000;
+        padding: 8px;
+        margin: 8px 0;
+        font-size: 10px;
+        line-height: 1.5;
+        text-align: justify;
+      }
+
+      .section-header {
+        background: linear-gradient(135deg, #800000 0%, #800000 100%);
+        color: white;
+        text-align: center;
+        padding: 6px;
+        font-weight: 700;
+        font-size: 14px;
+        margin: 10px 0 8px 0;
+      }
+
+      table {
         width: 100%;
         border-collapse: collapse;
-        table-layout: fixed;
-      }
-      .data th,
-      .data td {
-        border: 1px solid #e6e6e6;
-        padding: 2.5mm 2mm;
-        vertical-align: top;
-        word-wrap: break-word;
-        overflow-wrap: break-word;
-      }
-      .data th {
-        background: #f7efe3;
-        font-weight: 600;
-        text-transform: uppercase;
-        font-size: 9px;
-        letter-spacing: 0.2px;
-        text-align: center;
-      }
-      .label {
-        width: 30%;
-        background: #faf8f3;
-        font-weight: 600;
-        color: #4a3a27;
-      }
-      .value {
-        color: #1f1f1f;
+        margin: 8px 0;
+        font-size: 10px;
       }
 
-      /* ---------- Signatures ---------- */
-      .signatures {
-        display: table;
-        width: 100%;
-        margin-top: 8mm;
+      table, th, td {
+        border: 1px solid #000;
       }
-      .signatures .sig {
-        display: table-cell;
-        width: 50%;
-        vertical-align: top;
-        padding: 0 5mm 0 0;
-      }
-      .sig .line {
-        border-top: 1px dashed #bdbdbd;
-        padding-top: 6mm;
+
+      th {
+        background: #e8d5c4;
+        padding: 4px;
+        font-weight: 600;
         text-align: center;
       }
-      .sig .label {
-        font-weight: 600;
+
+      td {
+        padding: 4px;
+        text-align: center;
+      }
+
+      .total-row {
+        font-weight: 700;
+      }
+
+      .images-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin: 10px 0;
+      }
+
+      .image-box {
+        border: 2px solid #800000;
+        max-height: 100px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .image-placeholder {
+        flex: 1;
+        background: #f5f5dc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .image-placeholder img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+      }
+
+      .image-caption {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 4px;
+        text-align: center;
+        font-size: 9px;
+        border-top: 1px solid #800000;
+      }
+
+      .footer-notes {
+        font-size: 9px;
+        line-height: 1.5;
+        margin: 8px 0;
+        padding: 6px;
+        border: 1px solid #ccc;
+      }
+
+      .footer-notes strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .signatures {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 30px;
+        text-align: center;
+        font-size: 11px;
+      }
+
+      .sign-single{
+        display: flex;
+        justify-content: end;
+        margin-top: 30px;
+        text-align: center;
+        font-size: 11px;
+      }
+
+      .signature-box {
+        /* border-top: 1px solid #000; */
+        padding-top: 4px;
+      }
+
+      .signature-box img {
+        width: 80px;
+        height: 40px;
+        margin-bottom: 5px;
+      }
+
+      .dashed-divider {
+        border-top: 2px dashed #000;
+        margin: 20px 0;
       }
     </style>
   </head>
   <body>
-    <div class="container">
-      <!-- Header -->
-      <header class="doc-header">
-        <div class="cell" style="text-align: left">
-          {% if municipality_logo_url %}
-          <img
-            class="brand-logo"
-            src="{{ municipality_logo_url }}"
-            alt="Logo"
-          />
-          {% endif %}
+    <div class="page">
+      <!-- Header Section -->
+      <div class="header">
+        <div class="logo">
+          <img src="{{ logo_url }}" alt="Logo" />
         </div>
+        <div class="header-content">
+          <div class="header-title">{{ ulb.system_name }}</div>
+          <div class="header-subtitle">
+            सन २०२१ ते २०२२ च्या प्रस्तावीत वाढीव मालमत्तेच्या वार्षिक वाढीव कर
+            मूल्यांकन सूचना ( नोटीस ) ( प्राप्तीपोच पावती )<br />
+            महाराष्ट्र नगर परिषदा, नगरपंचायती व औद्योगिक नगरी अधिनियम, १९६५ चे
+            कलम ११९(१) व १२४ अन्वये<br />
+            पुरवणी कर आकारणी नोटीस
+          </div>
+        </div>
+      </div>
 
-        <div class="cell title-block">
-          <h1>Shirur Nagarparishad</h1>
-          <p class="muted small">Water Supply — Property Survey Report</p>
-          <p class="xsmall muted">
-            Date: {{ survey.created_at|date:"d-m-Y" }} &nbsp;|&nbsp; Survey ID:
-            {{ survey.id }}
-          </p>
+      <!-- Info Grid -->
+      <div class="info-grid">
+        <div class="info-field">
+          <label>वॉर्ड क्र:</label>
+          {{ survey.ward_no|default:"-" }}
         </div>
+        <div class="info-field">
+          <label>मालमत्ता क्र:</label>
+          {{ survey.property_no|default:"-" }}
+        </div>
+        
+        <div class="info-field">
+          <label>प्लॉट क्र:</label>
+          {{ survey.plot_no|default:"-" }}
+        </div>
+        <div class="info-field">
+          <label>जुना वार्ड क्र:</label>
+          {{ survey.old_ward_no|default:"-" }}
+        </div>
+        <div class="info-field">
+          <label>जुना भाग क्र:</label>
+          {{ survey.old_property_no|default:"-" }}
+        </div>
+      </div>
 
-        <div class="cell" style="text-align: right">
-          {% if qr_code_url %}
-          <img class="qr" src="{{ qr_code_url }}" alt="QR" />
-          {% endif %}
+      <div class="info-grid-2">
+        <div class="info-field">
+          <label>मालमत्ता धारकाचे नाव:</label>
+          {{ survey.property_owner_name|default:"-" }}
         </div>
-      </header>
+        
+        <div class="info-field">
+          <label>मोबाईल क्र:</label>
+          {{ survey.pipe_holder_contact|default:"-" }}
+        </div>
+        
+        <div class="info-field">
+          <label>मालमत्तेचे वर्णन:</label>
+          {{ survey.property_type|default:"-" }}
+        </div>
+         <div class="info-field address-field">
+          <label>पत्ता:</label>
+          {{ survey.address|default:"-" }}
+        </div>
+      </div>
+      
+       <div>
+        <table>
+          <thead>
+            <tr>
+              <td>थकबाकी कर</td>
+              <td>चालू कर</td>
+              <td>एकूण कर</td>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{{ survey.pending_tax|default:"-" }}</td>
+              <td>{{ survey.current_tax|default:"-" }}</td>
+              <td>{{ survey.total_tax|default:"-" }}</td>
+              
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="sign-single">
+        <div class="signature-box">
+          मालमत्ता धारकाची किंवा पावती घेणाऱ्याची सही
+        </div>
+      </div>
 
-      <!-- Property Info -->
-      <section class="section">
-        <div class="section-header">Property Information</div>
-        <div class="section-body">
-          <table class="data">
-            <tr>
-              <td class="label">Ward No</td>
-              <td class="value">{{ survey.ward_no|default:"-" }}</td>
-              <td class="label">Property No</td>
-              <td class="value">{{ survey.property_no|default:"-" }}</td>
-            </tr>
-            <tr>
-              <td class="label">Old Ward No</td>
-              <td class="value">{{ survey.old_ward_no|default:"-" }}</td>
-              <td class="label">Old Property No</td>
-              <td class="value">{{ survey.old_property_no|default:"-" }}</td>
-            </tr>
-            <tr>
-              <td class="label">Property Type</td>
-              <td class="value" colspan="3">
-                {{ survey.property_type|default:"-" }}
-              </td>
-            </tr>
-            <tr>
-              <td class="label">Address</td>
-              <td class="value" colspan="3">
-                {{ survey.address|default:"-" }}
-              </td>
-            </tr>
-          </table>
-        </div>
-      </section>
+      <!-- Divider -->
+      <div class="dashed-divider"></div>
 
-      <!-- Owner Info -->
-      <section class="section">
-        <div class="section-header">Owner Information</div>
-        <div class="section-body">
-          <table class="data">
-            <tr>
-              <td class="label">Owner Name</td>
-              <td class="value" colspan="3">
-                {{ survey.property_owner_name|default:"-" }}
-              </td>
-            </tr>
-            <tr>
-              <td class="label">Contact</td>
-              <td class="value">
-                {{ survey.pipe_holder_contact|default:"-" }}
-              </td>
-              <td class="label">Created By</td>
-              <td class="value xsmall">
-                {{ survey.created_by.email|default:"-" }}
-              </td>
-            </tr>
-          </table>
+      <!-- Second Header (Duplicate for tear-off section) -->
+      <div class="header">
+        <div class="logo">
+          <img src="{{ logo_url }}" alt="Logo" />
         </div>
-      </section>
+        <div class="header-content">
+          <div class="header-title">{{ ulb.system_name }}</div>
+          <div class="header-subtitle">
+            सन २०२१ ते २०२२ च्या प्रस्तावीत वाढीव मालमत्तेच्या वार्षिक वाढीव कर
+            मूल्यांकन सूचना ( नोटीस ) ( प्राप्तीपोच पावती )<br />
+            महाराष्ट्र नगर परिषदा, नगरपंचायती व औद्योगिक नगरी अधिनियम, १९६५ चे
+            कलम ११९(१) व १२४ अन्वये<br />
+            पुरवणी कर आकारणी नोटीस
+          </div>
+        </div>
+      </div>
 
-      <!-- Water Connection -->
-      <section class="section">
-        <div class="section-header">Water Connection</div>
-        <div class="section-body">
-          <table class="data">
-            <tr>
-              <td class="label">Available</td>
-              <td class="value">
-                {{ survey.water_connection_available|default:"-" }}
-              </td>
-              <td class="label">Connection Owner</td>
-              <td class="value">
-                {{ survey.water_connection_owner_name|default:"-" }}
-              </td>
-            </tr>
-            <tr>
-              <td class="label">Holder Name</td>
-              <td class="value">{{ survey.pipe_holder_name|default:"-" }}</td>
-              <td class="label">Contact</td>
-              <td class="value">
-                {{ survey.pipe_holder_contact|default:"-" }}
-              </td>
-            </tr>
-            <tr>
-              <td class="label">Connection Type</td>
-              <td class="value">{{ survey.connection_type|default:"-" }}</td>
-              <td class="label">Connection No</td>
-              <td class="value">{{ survey.connection_number|default:"-" }}</td>
-            </tr>
-            <tr>
-              <td class="label">Size</td>
-              <td class="value">{{ survey.connection_size|default:"-" }}</td>
-              <td class="label">No. of Connections</td>
-              <td class="value">
-                {{ survey.number_of_water_connections|default:"-" }}
-              </td>
-            </tr>
-            <tr>
-              <td class="label">Old Connection No</td>
-              <td class="value" colspan="3">
-                {{ survey.old_connection_number|default:"-" }}
-              </td>
-            </tr>
-          </table>
+       <!-- Info Grid -->
+      <div class="info-grid">
+        <div class="info-field">
+          <label>वॉर्ड क्र:</label>
+          {{ survey.ward_no|default:"-" }}
         </div>
-      </section>
+        <div class="info-field">
+          <label>मालमत्ता क्र:</label>
+          {{ survey.property_no|default:"-" }}
+        </div>
+        
+        <div class="info-field">
+          <label>प्लॉट क्र:</label>
+          {{ survey.plot_no|default:"-" }}
+        </div>
+        <div class="info-field">
+          <label>जुना वार्ड क्र:</label>
+          {{ survey.old_ward_no|default:"-" }}
+        </div>
+        <div class="info-field">
+          <label>जुना भाग क्र:</label>
+          {{ survey.old_property_no|default:"-" }}
+        </div>
+      </div>
 
-      <!-- Tax -->
-      <section class="section">
-        <div class="section-header">Tax Summary</div>
-        <div class="section-body">
-          <table class="data">
-            <tr>
-              <th>Pending</th>
-              <th>Current</th>
-              <th>Total</th>
-            </tr>
-            <tr>
-              <td class="center">{{ survey.pending_tax|default:"-" }}</td>
-              <td class="center">{{ survey.current_tax|default:"-" }}</td>
-              <td class="center">{{ survey.total_tax|default:"-" }}</td>
-            </tr>
-          </table>
+      <div class="info-grid-2">
+        <div class="info-field">
+          <label>मालमत्ता धारकाचे नाव:</label>
+          {{ survey.property_owner_name|default:"-" }}
         </div>
-      </section>
+        
+        <div class="info-field">
+          <label>मोबाईल क्र:</label>
+          {{ survey.pipe_holder_contact|default:"-" }}
+        </div>
+        
+        <div class="info-field">
+          <label>मालमत्तेचे वर्णन:</label>
+          {{ survey.property_type|default:"-" }}
+        </div>
+         <div class="info-field address-field">
+          <label>पत्ता:</label>
+          {{ survey.address|default:"-" }}
+        </div>
+      </div>
 
-      <!-- Remarks -->
-      <section class="section">
-        <div class="section-header">Remarks</div>
-        <div class="section-body">
-          <table class="data">
-            <tr>
-              <td class="value xsmall">{{ survey.remarks|default:"-" }}</td>
-            </tr>
-          </table>
-        </div>
-      </section>
+
+      <!-- Notice Text -->
+      <div class="notice-text">
+        आपणास याद्वारे सूचीत करण्यात येते की,
+        <strong>{{ ulb.system_name }}</strong> हद्दीतील आपण धारण करत असलेल्या
+        मालमत्तेला महाराष्ट्र नगर परिषदा, नगरपंचायती व औद्योगिक नगरी अधिनियम,
+        १९६५ नुसार मालमत्ता करआकारणी करण्याचे योजीले आहे. त्या बाबत करयोग्य
+        मूल्य व कर आकारणी बाबतचा तपशील खाली देण्यात आलेला आहे. सदर तपशिलावार
+        आपनी काही हरकत असल्यास सदर हरकत नमूद कायद्यातील कलम ११९ नुसार
+        मुख्याधिकारी <strong>{{ ulb.system_name }}</strong> यांच्या कडे ३० दिवसाच्या आत
+        लेखी स्वरुपात सादर करावी. सदर हरकत दाखल करतांना नमुद तपशीलातील किमान ५०%
+        मालमत्ता कर रक्कम भरणे बंधनकारक राहील. विहित मुदतीत व ५०% रक्कम न भरता
+        दाखल केलेल्या हरकतीचा विचार केला जाणार नाही.
+      </div>
     </div>
   </body>
 </html>

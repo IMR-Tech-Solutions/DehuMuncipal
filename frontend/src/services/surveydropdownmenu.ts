@@ -100,4 +100,4 @@ export const connectionSizes = [
 
 export const propertyTypeOptions = ["घरगुती", "अपार्टमेंट", "बहुमजली इमारत"];
 
-export const connectionTypeOptions = ["निवासी", "अनिवासी", "इतर"];
+export const connectionTypeOptions = ["अधिकृत", "अनधिकृत"];

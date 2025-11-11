@@ -39,9 +39,8 @@ class Survey(models.Model):
     connection_type = models.CharField(
         max_length=50,
         choices=[
-            ('निवासी', 'Residential'),
-            ('अनिवासी', 'Non-residential'),
-            ('इतर', 'Other')
+            ('अधिकृत', 'अधिकृत'),
+            ('अनधिकृत', 'अनधिकृत'),
         ],
         blank=True,
         null=True
@@ -73,6 +72,11 @@ class Survey(models.Model):
     # 16. Remarks
     remarks = models.TextField(blank=True, null=True)
     remarks_marathi = models.TextField(blank=True, null=True)
+
+
+    ward_name = models.CharField(max_length=100, blank=True, null=True)
+    road_name = models.CharField(max_length=200, blank=True, null=True)
+    pincode = models.CharField(max_length=10, blank=True, null=True)
     
     # Timestamps
     created_by = models.ForeignKey(UserMaster, on_delete=models.CASCADE)
