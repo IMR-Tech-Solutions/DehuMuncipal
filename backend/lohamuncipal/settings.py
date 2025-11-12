@@ -24,12 +24,12 @@ SECRET_KEY = 'django-insecure-@8j+5k&o!@v9)&gbm7j*6lqpdxed#x#8pg2f0cq1ghac^frw3+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173", "https://dehumuncipal.imrtechsolutions.com"
+    "http://localhost:5173", "https://dehu.lohamuncipal.in"
 ]
 CORS_ALLOW_CREDENTIALS = True 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "dehumuncipal.imrtechsolutions.com"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "dehu.lohamuncipal.in"]
 
-BASE_URL = ["http://localhost:8000", "https://dehumuncipal.imrtechsolutions.com"] 
+BASE_URL = ["http://localhost:8000", "https://dehu.lohamuncipal.in"] 
 
 # Application definition
 INSTALLED_APPS = [
