@@ -117,12 +117,24 @@ WSGI_APPLICATION = 'lohamuncipal.wsgi.application'
 # }
 
 # Server Postgresql Database
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'dehumunicipal',
+#         'USER': 'dehumunicipal',
+#         'PASSWORD':'Admin@_2223',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
+
+# Main Server Postgresql Database
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'dehumunicipal',
+        'NAME': 'dehu_db',
         'USER': 'dehumunicipal',
-        'PASSWORD':'Admin@_2223',
+        'PASSWORD':'Dehu@2025',
         'HOST': 'localhost',
         'PORT': '5432',
     }
