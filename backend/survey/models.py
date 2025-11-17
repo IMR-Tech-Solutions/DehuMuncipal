@@ -33,6 +33,8 @@ class Survey(models.Model):
         null=True
     )
     
+    number_of_building = models.PositiveIntegerField(blank=True, null=True)
+
     # 7. Water Connection Owner Name
     water_connection_owner_name = models.CharField(max_length=200, blank=True, null=True)
     water_connection_owner_name_marathi = models.CharField(max_length=200, blank=True, null=True)

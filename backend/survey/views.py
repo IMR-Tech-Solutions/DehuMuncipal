@@ -47,7 +47,7 @@ class SurveyCreateView(APIView):
             return Response(
                 {
                     "success": False,
-                    "message": f"Survey with ward_no {ward_no} and property_no {property_no} already exists.",
+                    "message": f"Survey with Wrd No. {ward_no} and Property No. {property_no} already exists.",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )

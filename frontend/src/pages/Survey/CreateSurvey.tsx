@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { toast } from "react-toastify";
+import { addSurveyService } from "../../services/surveyservices";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import PageMeta from "../../components/common/PageMeta";
-import { addSurveyService } from "../../services/surveyservices";
 import {
   propertyDescriptionOptions,
   connectionSizes,
@@ -122,6 +123,7 @@ interface SurveyFormData {
   property_owner_name: string;
   property_owner_name_marathi: string;
   property_type: string;
+  number_of_building: string;
   water_connection_owner_name: string;
   water_connection_owner_name_marathi: string;
   connection_type: string;
@@ -152,6 +154,7 @@ const CreateSurvey = () => {
     property_owner_name: "",
     property_owner_name_marathi: "",
     property_type: "",
+    number_of_building: "",
     water_connection_owner_name: "",
     water_connection_owner_name_marathi: "",
     connection_type: "",
@@ -220,8 +223,14 @@ const CreateSurvey = () => {
     }
 
     setFormData((prev) => {
-      const newData = { ...prev, [name]: value };
-      return newData;
+      if (name === "property_type" && value !== "बहुमजली इमारत") {
+        return {
+          ...prev,
+          property_type: String(value),
+          number_of_building: "",
+        };
+      }
+      return { ...prev, [name]: value };
     });
 
     // Sync water connection owner names if checkbox is checked and relevant fields changed
@@ -240,7 +249,7 @@ const CreateSurvey = () => {
       }
     }
 
-    // Auto-translate to Marathi
+    // Auto-translate to Marathi for certain fields
     const englishToMarathiMap: Record<string, string> = {
       property_owner_name: "property_owner_name_marathi",
       water_connection_owner_name: "water_connection_owner_name_marathi",
@@ -253,7 +262,6 @@ const CreateSurvey = () => {
       const translatedText = await translateToMarathi(value);
       setFormData((prev) => ({ ...prev, [marathiField]: translatedText }));
 
-      // If checkbox is checked, sync the translation to the water connection Marathi name field
       if (name === "property_owner_name" && sameOwnerNames) {
         setFormData((prev) => ({
           ...prev,
@@ -263,33 +271,38 @@ const CreateSurvey = () => {
     }
   };
 
-  // Handle submit
+  // Submit handler using axios
+  // Submit handler using axios
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // Validate required fields
+      // Basic validation
       if (!formData.ward_no || !formData.property_no) {
         toast.error("Please fill in Ward No and Property No");
+        setIsLoading(false);
         return;
       }
 
-      // Create FormData for file upload
+      // Prepare FormData
       const submitData = new FormData();
-      Object.keys(formData).forEach((key) => {
-        const value = formData[key as keyof SurveyFormData];
+      Object.entries(formData).forEach(([key, value]) => {
         if (value instanceof File) {
           submitData.append(key, value);
-        } else if (value !== null && value !== "") {
+        } else if (value !== null) {
           submitData.append(key, String(value));
         }
       });
 
-      // Submit data
-      const result = await addSurveyService(submitData);
-      toast.success("Survey created successfully!");
-      console.log("Survey Response:", result);
+      // Call the service
+      const response = await addSurveyService(submitData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      toast.success(response.data?.message || "Survey created successfully!");
 
       // Reset form and checkbox
       setFormData({
@@ -300,6 +313,7 @@ const CreateSurvey = () => {
         property_owner_name: "",
         property_owner_name_marathi: "",
         property_type: "",
+        number_of_building: "",
         water_connection_owner_name: "",
         water_connection_owner_name_marathi: "",
         connection_type: "",
@@ -320,7 +334,11 @@ const CreateSurvey = () => {
       setSameOwnerNames(false);
     } catch (error) {
       console.error(error);
-      handleError(error);
+      if (axios.isAxiosError(error) && error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        handleError(error);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -334,14 +352,14 @@ const CreateSurvey = () => {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-6">
-            {/* 1. Old Connection Number */}
+            {/* Basic Info */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Connection History
               </h3>
             </div>
 
-            {/* 2-4. Ward, Property, Description */}
+            {/* Ward and Property */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Property Information
@@ -367,7 +385,7 @@ const CreateSurvey = () => {
               </div>
             </div>
 
-            {/* 5-6. Property Owner */}
+            {/* Owner names, property type and description */}
             <div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <InputField
@@ -406,7 +424,21 @@ const CreateSurvey = () => {
               </div>
             </div>
 
-            {/* 8-9. Water Connection Owner */}
+            {/* Conditional number_of_building field - only if बहुमजली इमारत selected */}
+            {formData.property_type === "बहुमजली इमारत" && (
+              <div className="mt-4">
+                <InputField
+                  label="Number of Buildings"
+                  name="number_of_building"
+                  value={formData.number_of_building}
+                  onChange={handleChange}
+                  placeholder="Enter number of buildings"
+                  type="number"
+                />
+              </div>
+            )}
+
+            {/* Connection Details */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Connection Details
@@ -422,7 +454,7 @@ const CreateSurvey = () => {
               </div>
             </div>
 
-            {/* Water Connection Owner Names with single checkbox */}
+            {/* Water connection owner names and sync checkbox */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-center">
               <InputField
                 label="Water Connection Owner Name (English)"
@@ -455,10 +487,13 @@ const CreateSurvey = () => {
                     }
                   }}
                 />
-                <span className="ml-1">Same as Owner Name / [translate:मालक नावासारखेच]</span>
+                <span className="ml-1">
+                  Same as Owner Name / [translate:मालक नावासारखेच]
+                </span>
               </label>
             </div>
 
+            {/* Connection type and size */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <InputField
                 label="Connection Type"
@@ -480,7 +515,7 @@ const CreateSurvey = () => {
               />
             </div>
 
-            {/* 13-14. Water Connection Details */}
+            {/* Number of water connections and mobile number */}
             <div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <InputField
@@ -502,7 +537,7 @@ const CreateSurvey = () => {
               </div>
             </div>
 
-            {/* 19. Connection Photo */}
+            {/* Connection photo */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Connection Photo
@@ -518,7 +553,7 @@ const CreateSurvey = () => {
               </div>
             </div>
 
-            {/* 15. Address */}
+            {/* Address fields */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Address
@@ -560,7 +595,7 @@ const CreateSurvey = () => {
               </div>
             </div>
 
-            {/* 16-18. Tax Information */}
+            {/* Tax Information */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Tax Information
@@ -594,7 +629,7 @@ const CreateSurvey = () => {
               </div>
             </div>
 
-            {/* 20-21. Remarks */}
+            {/* Remarks */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Remarks

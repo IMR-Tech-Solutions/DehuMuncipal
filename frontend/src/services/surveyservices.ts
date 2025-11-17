@@ -6,9 +6,12 @@ export const getAllSurveysService = () => {
   return getAllPaginatedData("surveys/");
 };
 
-// ➕ Add Survey (Create New Survey)
-export const addSurveyService = async (surveyData: any) => {
-  const response = await api.post("surveys/create/", surveyData);
+// services/surveyservices.ts
+export const addSurveyService = async (
+  surveyData: any,
+  config?: { headers: { "Content-Type": string } } // optional
+) => {
+  const response = await api.post("surveys/create/", surveyData, config);
   return response.data;
 };
 
@@ -136,12 +139,9 @@ export const downloadExcelFile = (blob: Blob, filename: string) => {
 
 export const downloadSurveyReport = async (surveyId: number) => {
   try {
-    const response = await api.get(
-      `/surveys/${surveyId}/download-report/`,
-      {
-        responseType: "blob",
-      }
-    );
+    const response = await api.get(`/surveys/${surveyId}/download-report/`, {
+      responseType: "blob",
+    });
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement("a");
     link.href = url;

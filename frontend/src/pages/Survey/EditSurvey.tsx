@@ -131,6 +131,7 @@ interface SurveyFormData {
   property_owner_name: string;
   property_owner_name_marathi: string;
   property_type: string;
+  number_of_building: string;
   water_connection_owner_name: string;
   water_connection_owner_name_marathi: string;
   connection_type: string;
@@ -166,6 +167,7 @@ const EditSurvey = () => {
     property_owner_name: "",
     property_owner_name_marathi: "",
     property_type: "",
+    number_of_building: "",
     water_connection_owner_name: "",
     water_connection_owner_name_marathi: "",
     connection_type: "",
@@ -228,6 +230,7 @@ const EditSurvey = () => {
         property_owner_name_marathi:
           surveyData.property_owner_name_marathi || "",
         property_type: surveyData.property_type || "",
+        number_of_building: surveyData.number_of_building || "",
         water_connection_owner_name:
           surveyData.water_connection_owner_name || "",
         water_connection_owner_name_marathi:
@@ -510,6 +513,17 @@ const EditSurvey = () => {
                 options={propertyDescriptionOptions}
                 placeholder="Select description"
               />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {formData.property_type === "बहुमजली इमारत" && (
+                <InputField
+                  label="Number of Building"
+                  name="number_of_building"
+                  value={formData.number_of_building}
+                  onChange={handleChange}
+                  placeholder="Enter number of buildings"
+                />
+              )}
             </div>
 
             {/* 8-9. Water Connection Owner */}
