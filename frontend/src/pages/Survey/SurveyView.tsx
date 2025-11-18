@@ -126,17 +126,21 @@ const SurveyView = () => {
       return <span className="text-gray-500 dark:text-gray-400">-</span>;
     }
     if (key === "connection_photo" && value) {
-      return (
-        <a
-          href={value}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-500 hover:text-blue-700 underline"
-        >
-          View Photo
-        </a>
-      );
-    }
+  return (
+    <img
+      src={`${import.meta.env.VITE_API_IMG_URL}${value}`}
+      alt="Connection Photo"
+      style={{
+        maxWidth: "120px",
+        maxHeight: "80px",
+        borderRadius: "8px",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+        border: "1px solid #e5e7eb"
+      }}
+    />
+  );
+}
+
     if (key.includes("_at") || key === "created_at" || key === "updated_at") {
       try {
         return (
@@ -257,19 +261,11 @@ const SurveyView = () => {
         <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-col items-center w-full gap-6 xl:flex-row">
             <div className="w-20 h-20 overflow-hidden border border-gray-200 rounded-full dark:border-gray-800 bg-blue-100 flex items-center justify-center">
-              <svg
-                className="w-10 h-10 text-blue-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                />
-              </svg>
+             <img
+                src={`${import.meta.env.VITE_API_IMG_URL}${survey?.connection_photo}`}
+                alt="Connection Photo"
+                
+            />
             </div>
             <div className="order-3 xl:order-2">
               <h4 className="mb-2 text-lg font-semibold text-center text-gray-800 dark:text-white/90 xl:text-left">

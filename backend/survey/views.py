@@ -37,7 +37,7 @@ class SurveyCreateView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def post(self, request, *args, **kwargs):
-        data = request.data.copy()
+        data = request.data  # FIX: Use request.data AS-IS to avoid copy/deepcopy error
 
         ward_no = data.get("ward_no")
         property_no = data.get("property_no")
@@ -47,7 +47,7 @@ class SurveyCreateView(APIView):
             return Response(
                 {
                     "success": False,
-                    "message": f"Survey with Wrd No. {ward_no} and Property No. {property_no} already exists.",
+                    "message": f"Survey with Ward No. {ward_no} and Property No. {property_no} already exists.",
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -77,7 +77,6 @@ class SurveyCreateView(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
 
 # ==============================
 # Survey Detail View

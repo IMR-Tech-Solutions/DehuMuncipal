@@ -577,13 +577,13 @@ const CreateSurvey = () => {
                 />
               </div>
               <div className="grid grid-cols-2 gap-5">
-                <InputField
+                {/* <InputField
                   label="Road Name"
                   name="road_name"
                   value={formData.road_name}
                   onChange={handleChange}
                   placeholder="Enter road name"
-                />
+                /> */}
                 <InputField
                   label="Pincode"
                   name="pincode"
