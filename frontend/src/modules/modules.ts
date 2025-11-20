@@ -10,4 +10,5 @@ export const all_modules = {
   editsurvey: "editsurvey",
   rolepermissions: "rolepermissions",
   resetpassword: "resetpassword",
+  surveyreport: "survey-report"
 };

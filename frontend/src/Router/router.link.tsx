@@ -13,6 +13,7 @@ import Rolepermissions from "../pages/Roles/Rolepermissions";
 import { all_modules } from "../modules/modules";
 import Allusers from "../pages/Users/Allusers";
 import ResetPasswordLayout from "../pages/ResetPassword/ResetPasswordLayout";
+import SurveyReports from "../pages/Reports/surveyreport";
 
 export const websiteRoutes = [
   {
@@ -84,6 +85,13 @@ export const websiteRoutes = [
     link: all_routes.viewusers,
     module: all_modules.viewuser,
     element: <Allusers />,
+  },
+  {
+    id: "12",
+    name: "Survey Reports",
+    link: all_routes.surveyreport,
+    module: all_modules.surveyreport,
+    element: <SurveyReports/>,
   },
 ];
 

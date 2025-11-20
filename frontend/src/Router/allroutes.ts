@@ -11,6 +11,7 @@ export const all_routes = {
   viewsurvey: "/survey/:id",
   createsurvey: "/create-survey",
   editsurvey: "/survey/edit/:id",
+  surveyreport: "/survey-report",
 
   // Others Page
   profile: "/profile",

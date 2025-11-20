@@ -1,6 +1,7 @@
 import { getAllPaginatedData } from "./getpaginateddata";
 import api from "./baseapi";
 
+
 // 📄 Get All Surveys (Paginated)
 export const getAllSurveysService = () => {
   return getAllPaginatedData("surveys/");

@@ -9,5 +9,6 @@ urlpatterns = [
     path('api/', include('roles.urls')),
     path('api/', include('usermodules.urls')),
     path('api/', include('survey.urls')),
+    path('api/', include('reports.urls')),
       
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

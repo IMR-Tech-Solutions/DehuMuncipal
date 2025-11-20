@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { addSurveyService } from "../../services/surveyservices";
@@ -11,7 +11,7 @@ import {
   connectionTypeOptions,
 } from "../../services/surveydropdownmenu";
 import { handleError } from "../../utils/handleError";
-
+import { Button, Modal } from "antd";
 // InputField Component
 interface InputFieldProps {
   label: string;
@@ -144,6 +144,11 @@ interface SurveyFormData {
 
 const CreateSurvey = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Form state - EXACT SEQUENCE
   const [formData, setFormData] = useState<SurveyFormData>({
@@ -344,6 +349,65 @@ const CreateSurvey = () => {
     }
   };
 
+const startCamera = async () => {
+  setShowCamera(true);
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    if (videoRef.current) {
+      videoRef.current.srcObject = stream;
+    }
+  } catch (error) {
+    console.error("Camera error:", error);
+    toast.error("Camera not accessible");
+  }
+};
+
+const stopCamera = () => {
+  setShowCamera(false);
+  const stream = videoRef.current?.srcObject as MediaStream;
+  stream?.getTracks().forEach((track) => track.stop());
+};
+
+const captureImage = () => {
+  if (!videoRef.current || !canvasRef.current) return;
+
+  const video = videoRef.current;
+  const canvas = canvasRef.current;
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  const ctx = canvas.getContext("2d");
+  if (ctx) ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  const imageData = canvas.toDataURL("image/jpeg");
+
+  setCapturedImage(imageData); // preview दाखवण्यासाठी
+
+  // Convert base64 → File
+  const arr = imageData.split(",");
+  const mime = arr[0].match(/:(.*?);/)![1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) u8arr[n] = bstr.charCodeAt(n);
+
+  const file = new File([u8arr], "connection_photo.jpg", { type: mime });
+
+  setFormData((prev) => ({
+    ...prev,
+    connection_photo: file,   
+  }));
+
+  stopCamera();
+};
+
+const removeImage = () => {
+  setCapturedImage(null);
+  setFormData((prev) => ({ ...prev, connection_photo: null }));
+};
+
+
   return (
     <>
       <PageMeta title="Create Survey" description="Create a new survey entry" />
@@ -538,20 +602,58 @@ const CreateSurvey = () => {
             </div>
 
             {/* Connection photo */}
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-                Connection Photo
-              </h3>
-              <div className="grid grid-cols-1 gap-5">
-                <InputField
-                  label="Upload Photo"
-                  name="connection_photo"
-                  value={formData.connection_photo}
-                  onChange={handleChange}
-                  type="file"
-                />
-              </div>
-            </div>
+           <div>
+  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+    Connection Photo
+  </h3>
+
+  <div className="space-y-3">
+    <button
+      type="button"
+      onClick={startCamera}
+      className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+    >
+      Capture Image
+    </button>
+
+    {capturedImage && (
+      <div className="relative w-40">
+        <img
+          src={capturedImage}
+          className="w-40 h-32 object-cover rounded-md"
+        />
+        <button
+          type="button"
+          onClick={removeImage}
+          className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
+        >
+          ×
+        </button>
+      </div>
+    )}
+  </div>
+</div>
+
+<Modal
+  title="Capture Connection Photo"
+  open={showCamera}
+  onCancel={stopCamera}
+  footer={[
+    <Button key="cancel" onClick={stopCamera}>Cancel</Button>,
+    <Button key="capture" type="primary" onClick={captureImage}>Capture</Button>,
+  ]}
+  width={700}
+>
+  <div className="text-center">
+    <video
+      ref={videoRef}
+      autoPlay
+      playsInline
+      className="w-full max-w-md mx-auto rounded-lg"
+    />
+    <canvas ref={canvasRef} style={{ display: "none" }} />
+  </div>
+</Modal>
 
             {/* Address fields */}
             <div>

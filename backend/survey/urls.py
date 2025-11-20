@@ -19,6 +19,5 @@ urlpatterns = [
     path('surveys/download-template/', views.SurveyExcelTemplateDownloadView.as_view(), name='survey-template-download'),
 
     path('surveys/statistics/', views.SurveyStatsView.as_view(), name='survey-statistics'),
-    path('surveys/<int:survey_id>/download-report/', views.SurveyDownloadReportView.as_view(), name='download_survey_report'),
 ]
 

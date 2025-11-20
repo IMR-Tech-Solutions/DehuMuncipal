@@ -5,7 +5,7 @@ import {
   GroupIcon,
   TaskIcon,
   // ChatIcon,
-  // DocsIcon,
+  DocsIcon,
   PlusIcon,
   // PlugInIcon,
   // PieChartIcon,
@@ -61,7 +61,12 @@ export const configration: NavItem[] = [
 ];
 
 export const surveyReports: NavItem[] = [
-  
+  {
+    icon: <DocsIcon />,
+    name: "Survey Reports",
+    path: "/survey-report",
+    module: all_modules.createsurvey,
+  },
 ];
 
 export const allSidebarSections = {

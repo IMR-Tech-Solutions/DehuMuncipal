@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'roles',
     'usermodules',
     'survey',
+    'reports',
 ]
 
 REST_FRAMEWORK = {

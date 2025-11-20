@@ -287,19 +287,27 @@ class SurveyExcelExportView(APIView):
             "id",
             "ward_no",
             "property_no",
-            "old_ward_no",
-            "old_property_no",
-            "ward_name",
-            "road_name",
-            "pincode",
+            "old_connection_number",
             "property_description",
+            "property_owner_name",
+            "property_owner_name_marathi",
+            "property_type",
+            "number_of_building",
+            "water_connection_owner_name",
+            "water_connection_owner_name_marathi",
+            "connection_type",
+            "connection_size",
+            "number_of_water_connections",
+            "mobile_number",
+            "pincode",
             "address",
             "address_marathi",
-            "water_connection_available",
-            "number_of_water_connections",
-            "connection_size",
+            "pending_tax",
+            "current_tax",
+            "total_tax",
             "remarks",
             "remarks_marathi",
+            "created_by",
             "created_at",
             "updated_at",
         ]
@@ -317,6 +325,8 @@ class SurveyExcelExportView(APIView):
             row = []
             for fld in headers:
                 val = getattr(survey, fld, "")
+                if fld == "created_by" and val:
+                    val = val.email 
                 row.append(make_naive(val))
             ws.append(row)
 
@@ -501,45 +511,61 @@ class SurveyExcelTemplateDownloadView(APIView):
 
             # Headers
             headers = [
-                "ward_no",
-                "ward_name",
-                "road_name",
-                "pincode",
-                "property_no",
-                "old_ward_no",
-                "old_property_no",
-                "property_description",
-                "address",
-                "address_marathi",
-                "water_connection_available",
-                "number_of_water_connections",
-                "connection_size",
-                "remarks",
-                "remarks_marathi",
+            "id",
+            "ward_no",
+            "property_no",
+            "old_connection_number",
+            "property_description",
+            "property_owner_name",
+            "property_owner_name_marathi",
+            "property_type",
+            "number_of_building",
+            "water_connection_owner_name",
+            "water_connection_owner_name_marathi",
+            "connection_type",
+            "connection_size",
+            "number_of_water_connections",
+            "mobile_number",
+            "pincode",
+            "address",
+            "address_marathi",
+            "pending_tax",
+            "current_tax",
+            "total_tax",
+            "remarks",
+            "remarks_marathi",
             ]
 
             ws.append(headers)
 
             # Sample data
             sample_data = [
-                [
-                    1,  # ward_no
-                    "Ward A",
-                    "Main Road",
-                    "412210",
-                    101,  # property_no
-                    "",  # old_ward_no
-                    "",  # old_property_no
-                    "Residential Building",  # property_description
-                    "Plot No 101, Sector A",  # address
-                    "प्लॉट नं १०१, सेक्टर ए",  # address_marathi
-                    "Yes",  # water_connection_available
-                    1,  # number_of_water_connections
-                    "15mm",  # connection_size
-                    "Well maintained property",  # remarks
-                    "चांगली मालमत्ता",  # remarks_marathi
-                ],
+            [
+                1,                    
+                1,                            
+                101,            
+                "OLD-12345",               
+                "Residential Building",     
+                "Rahul Patil",          
+                "राहुल पाटील",         
+                "Residential",             
+                1,                       
+                "Rahul Patil",           
+                "राहुल पाटील",          
+                "Yes",          
+                "15mm",                   
+                1,                         
+                "9876543210",              
+                "412210",                   
+                "Plot No 101, Sector A",    
+                "प्लॉट नं १०१, सेक्टर ए",   
+                1500,                      
+                500,                       
+                2000,                       
+                "Well maintained property", 
+                "चांगली मालमत्ता",  
             ]
+        ]
 
             for row_data in sample_data:
                 ws.append(row_data)
@@ -738,67 +764,5 @@ class SurveyStatsView(APIView):
             )
 
 
-#-----------------------------
-# Survey Report Generation View
-#------------------------------
-from django.template.loader import render_to_string
-from weasyprint import HTML
 
-class SurveyDownloadReportView(APIView):
-    permission_classes = [IsAuthenticated, HasModuleAccess]
-    required_permission = "view-survey"
-    
-    def get(self, request, survey_id, *args, **kwargs):
-        """Download survey report as PDF"""
-        try:
-            # Fetch survey
-            survey = Survey.objects.get(id=survey_id)
 
-            
-            # Prepare context
-            context = {
-                'survey': survey,
-                'municipality_name': 'Dehu नगरपरिषद',
-                'ward_name': f'Ward {survey.ward_no}',
-                'property_info': f'Property {survey.property_no}',
-                "logo_url": request.build_absolute_uri(settings.MEDIA_URL + "images/logo.jpeg"),
-            }
-            
-            # Render HTML template
-            html_string = render_to_string('survey/survey_report.html', context)
-            
-            # Generate PDF
-            pdf_file = io.BytesIO()
-            HTML(string=html_string).write_pdf(pdf_file)
-            pdf_file.seek(0)
-            
-            logger.info(f"Survey report generated for survey ID: {survey_id}")
-            
-            # Return PDF response
-            response = HttpResponse(
-                pdf_file.getvalue(),
-                content_type='application/pdf'
-            )
-            response['Content-Disposition'] = f'attachment; filename="Survey-Report-{survey_id}.pdf"'
-            
-            return response
-            
-        except Survey.DoesNotExist:
-            logger.error(f"Survey not found: {survey_id}")
-            return Response(
-                {
-                    "success": False,
-                    "message": f"Survey with ID {survey_id} not found.",
-                },
-                status=status.HTTP_404_NOT_FOUND,
-            )
-        except Exception as e:
-            logger.error(f"Error generating report for survey {survey_id}: {str(e)}")
-            return Response(
-                {
-                    "success": False,
-                    "message": "Failed to generate report",
-                    "error": str(e),
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
