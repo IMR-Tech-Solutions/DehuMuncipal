@@ -149,7 +149,7 @@ const CreateSurvey = () => {
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
+  const streamRef = useRef<MediaStream | null>(null);
   // Form state - EXACT SEQUENCE
   const [formData, setFormData] = useState<SurveyFormData>({
     old_connection_number: "",
@@ -349,24 +349,29 @@ const CreateSurvey = () => {
     }
   };
 
-const startCamera = async () => {
-  setShowCamera(true);
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
+  // Camera functions
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 640, height: 480, facingMode: "environment" }, // Use back camera on mobile
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      setShowCamera(true);
+    } catch (error) {
+      console.error("Error accessing camera:", error);
+      toast.error("Camera access denied or not available");
     }
-  } catch (error) {
-    console.error("Camera error:", error);
-    toast.error("Camera not accessible");
-  }
-};
+  };
 
-const stopCamera = () => {
-  setShowCamera(false);
-  const stream = videoRef.current?.srcObject as MediaStream;
-  stream?.getTracks().forEach((track) => track.stop());
-};
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+    }
+    setShowCamera(false);
+  };
 
 const captureImage = () => {
   if (!videoRef.current || !canvasRef.current) return;
@@ -678,14 +683,14 @@ const removeImage = () => {
                   placeholder="पत्ता टाका (auto-filled)"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-5">
-                {/* <InputField
+              {/* <div className="grid grid-cols-2 gap-5">
+                 <InputField
                   label="Road Name"
                   name="road_name"
                   value={formData.road_name}
                   onChange={handleChange}
                   placeholder="Enter road name"
-                /> */}
+                /> 
                 <InputField
                   label="Pincode"
                   name="pincode"
@@ -694,7 +699,7 @@ const removeImage = () => {
                   placeholder="Enter pincode"
                   type="text"
                 />
-              </div>
+              </div> */}
             </div>
 
             {/* Tax Information */}

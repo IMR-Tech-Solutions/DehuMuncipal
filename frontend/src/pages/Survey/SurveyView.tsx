@@ -66,7 +66,7 @@ const SurveyView = () => {
       mobile_number: "Mobile Number",
       address: "Address",
       address_marathi: "पत्ता (मराठी)",
-      pincode: "Pincode",
+//       pincode: "Pincode",
       pending_tax: "Pending Tax",
       current_tax: "Current Tax",
       total_tax: "Total Tax",
@@ -104,7 +104,7 @@ const SurveyView = () => {
       address: <EnvironmentOutlined className="text-orange-500" />,
       address_marathi: <EnvironmentOutlined className="text-blue-700" />,
       road_name: <EnvironmentOutlined className="text-green-500" />,
-      pincode: <EnvironmentOutlined className="text-gray-500" />,
+//       pincode: <EnvironmentOutlined className="text-gray-500" />,
       pending_tax: <DollarOutlined className="text-emerald-500" />,
       current_tax: <DollarOutlined className="text-emerald-500" />,
       total_tax: <DollarOutlined className="text-emerald-600" />,
@@ -212,7 +212,7 @@ const SurveyView = () => {
     },
     {
       group: "Address",
-      fields: ["address", "address_marathi", "pincode"],
+      fields: ["address", "address_marathi"],
     },
     {
       group: "Tax Information",

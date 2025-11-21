@@ -166,6 +166,7 @@ const EditSurvey = () => {
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   // Form state
   const [formData, setFormData] = useState<SurveyFormData>({
@@ -364,24 +365,28 @@ const EditSurvey = () => {
 
   // Camera functions
   const startCamera = async () => {
-    setShowCamera(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 640, height: 480, facingMode: "environment" }, // Use back camera on mobile
+      });
+      streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
+      setShowCamera(true);
     } catch (error) {
-      console.error("Camera error:", error);
-      toast.error("Camera not accessible");
+      console.error("Error accessing camera:", error);
+      toast.error("Camera access denied or not available");
     }
   };
 
-  const stopCamera = () => {
+   const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+    }
     setShowCamera(false);
-    const stream = videoRef.current?.srcObject as MediaStream;
-    stream?.getTracks().forEach((track) => track.stop());
   };
-
+  
   const captureImage = () => {
     if (!videoRef.current || !canvasRef.current) return;
 
@@ -825,7 +830,7 @@ const EditSurvey = () => {
                   placeholder="पत्ता टाका (auto-filled)"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-5">
+              {/* <div className="grid grid-cols-2 gap-5">
                 <InputField
                   label="Pincode"
                   name="pincode"
@@ -834,7 +839,7 @@ const EditSurvey = () => {
                   placeholder="Enter pincode"
                   type="text"
                 />
-              </div>
+              </div> */}
             </div>
 
             {/* Tax Information */}

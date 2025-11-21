@@ -38,6 +38,7 @@ def generate_and_save_pdf(survey, request=None):
         if request is None:
             from django.test import RequestFactory
             request = RequestFactory().get("/")
+            # request.build_absolute_uri = lambda uri="": f"http://localhost/{uri}"
             request.build_absolute_uri = lambda uri="": f"https://dehu.lohamuncipal.in/{uri}"
 
         pdf_content = single_report_generator.generate_single_report(
