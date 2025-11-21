@@ -28,39 +28,33 @@ logger = logging.getLogger(__name__)
 
 # ==================== HELPER FUNCTION ====================
 def generate_and_save_pdf(survey, request=None):
-    """Generate PDF for Survey and save to file system"""
     try:
-        # Delete old PDF
-        if survey.pdf_report:
-            if os.path.isfile(survey.pdf_report.path):
-                os.remove(survey.pdf_report.path)
-            survey.pdf_report = None
+        if survey.pdfreport and os.path.isfile(survey.pdfreport.path):
+            os.remove(survey.pdfreport.path)
+            survey.pdfreport = None
 
-        # Generate new PDF
         single_report_generator = SingleReport115GenerateView()
 
         if request is None:
             from django.test import RequestFactory
             request = RequestFactory().get("/")
-            request.build_absolute_uri = lambda uri="": f"http://lohamuncipal.in/{uri}"
+            request.build_absolute_uri = lambda uri="": f"https://dehu.lohamuncipal.in/{uri}"
 
         pdf_content = single_report_generator.generate_single_report(
             survey, "pdf", request
         )
 
-        # Generate PDF filename
         pdf_filename = f"Survey_Report_Ward_{survey.ward_no}_Property_{survey.property_no}_{survey.id}.pdf"
 
-        # Save PDF
-        survey.pdf_report.save(
-            pdf_filename, ContentFile(pdf_content), save=False
-        )
+        # REMOVE save=False
+        survey.pdfreport.save(pdf_filename, ContentFile(pdf_content))
+        survey.save()  # <<< REQUIRED
 
         return True, "PDF generated successfully"
 
     except Exception as e:
-        logger.error(f"PDF generation error for survey {survey.id}: {str(e)}")
         return False, str(e)
+
 
 
 # ==================== SINGLE REPORT 115 VIEW ====================
@@ -234,7 +228,7 @@ class BulkReport115GenerateView(APIView):
             for survey in surveys:
                 try:
                     # Check if PDF exists and is valid
-                    if not survey.pdf_report or not os.path.isfile(survey.pdf_report.path):
+                    if not survey.pdfreport or not os.path.isfile(survey.pdfreport.path):
                         # Generate PDF if not exists
                         pdf_success, pdf_message = generate_and_save_pdf(survey, request)
                         if pdf_success:
@@ -247,12 +241,11 @@ class BulkReport115GenerateView(APIView):
                             continue
 
                     # Merge existing PDF
-                    with open(survey.pdf_report.path, "rb") as pdf_file:
-                        pdf_reader = PdfReader(pdf_file)
-                        
-                        # Add all pages from this PDF
-                        for page_num in range(len(pdf_reader.pages)):
-                            pdf_writer.add_page(pdf_reader.pages[page_num])
+                    with open(survey.pdfreport.path, "rb") as pdf_file:
+                        pdf_reader = PdfReader(pdf_file, strict=False)
+                        for page in pdf_reader.pages:
+                            pdf_writer.add_page(page)
+
                         
                         logger.info(f"Added {len(pdf_reader.pages)} pages from survey {survey.id}")
 
@@ -263,6 +256,7 @@ class BulkReport115GenerateView(APIView):
             # Write merged PDF to buffer
             output_buffer = io.BytesIO()
             pdf_writer.write(output_buffer)
+            pdf_writer.close()
             output_buffer.seek(0)
             merged_content = output_buffer.getvalue()
             output_buffer.close()
@@ -301,7 +295,7 @@ class SinglePDFDownloadView(APIView):
             survey = Survey.objects.get(id=survey_id)
 
             # Generate PDF if not exists
-            if not survey.pdf_report or not os.path.isfile(survey.pdf_report.path):
+            if not survey.pdfreport or not os.path.isfile(survey.pdfreport.path):
                 pdf_success, pdf_message = generate_and_save_pdf(survey, request)
                 if not pdf_success:
                     return Response(
@@ -312,7 +306,7 @@ class SinglePDFDownloadView(APIView):
 
             # Download PDF
             response = FileResponse(
-                open(survey.pdf_report.path, "rb"), content_type="application/pdf"
+                open(survey.pdfreport.path, "rb"), content_type="application/pdf"
             )
             filename = f"Survey_Ward_{survey.ward_no}_Property_{survey.property_no}.pdf"
             response["Content-Disposition"] = f'attachment; filename="{filename}"'

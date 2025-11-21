@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Spin, Alert, Button } from "antd";
+import { Spin, Alert, Button, Modal } from "antd";
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import { ArrowLeftOutlined, DownloadOutlined } from "@ant-design/icons";
@@ -18,7 +18,7 @@ import {
 } from "../../services/surveydropdownmenu";
 import { handleError } from "../../utils/handleError";
 
-// InputField Component (as in CreateSurvey)
+// InputField Component
 interface InputFieldProps {
   label: string;
   name: string;
@@ -33,6 +33,7 @@ interface InputFieldProps {
   required?: boolean;
   options?: string[];
   isMarathi?: boolean;
+  readOnly?: boolean;
 }
 
 const InputField = React.memo<InputFieldProps>(
@@ -46,6 +47,7 @@ const InputField = React.memo<InputFieldProps>(
     required = false,
     options = [],
     isMarathi = false,
+    readOnly = false,
   }) => {
     const inputId = `input-${name}`;
     return (
@@ -85,6 +87,7 @@ const InputField = React.memo<InputFieldProps>(
             }`}
             placeholder={placeholder}
             rows={3}
+            readOnly={readOnly}
           />
         ) : type === "file" ? (
           <div>
@@ -96,7 +99,6 @@ const InputField = React.memo<InputFieldProps>(
               className={`w-full border border-gray-300 dark:border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 dark:text-white dark:bg-gray-800 px-4 py-2.5 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100`}
               accept="image/*"
             />
-            {/* show current value if string */}
             {value && typeof value === "string" && (
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Current: {value}
@@ -114,6 +116,7 @@ const InputField = React.memo<InputFieldProps>(
               isMarathi ? "font-marathi" : ""
             }`}
             placeholder={placeholder}
+            readOnly={readOnly}
           />
         )}
       </div>
@@ -122,7 +125,7 @@ const InputField = React.memo<InputFieldProps>(
 );
 InputField.displayName = "InputField";
 
-// Survey Form Data Interface - EXACT SEQUENCE
+// Survey Form Data Interface
 interface SurveyFormData {
   old_connection_number: string;
   ward_no: string;
@@ -157,8 +160,14 @@ const EditSurvey = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [sameOwnerNames, setSameOwnerNames] = useState(false);
 
-  // Form state - EXACT SEQUENCE
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Form state
   const [formData, setFormData] = useState<SurveyFormData>({
     old_connection_number: "",
     ward_no: "",
@@ -203,6 +212,17 @@ const EditSurvey = () => {
     }
   };
 
+  // Auto-calculate total tax
+  useEffect(() => {
+    const pending = parseFloat(formData.pending_tax) || 0;
+    const current = parseFloat(formData.current_tax) || 0;
+    const total = pending + current;
+    setFormData((prev) => ({
+      ...prev,
+      total_tax: total ? total.toString() : "",
+    }));
+  }, [formData.pending_tax, formData.current_tax]);
+
   // Fetch survey data
   const fetchSurveyData = async () => {
     try {
@@ -220,7 +240,6 @@ const EditSurvey = () => {
         throw new Error("No survey data received from server");
       }
 
-      // Populate form data (match create survey field sequence)
       setFormData({
         old_connection_number: surveyData.old_connection_number || "",
         ward_no: surveyData.ward_no?.toString() || "",
@@ -276,7 +295,7 @@ const EditSurvey = () => {
     }
   }, [id]);
 
-  // Handle input change - WITH AUTO-TRANSLATION
+  // Handle input change with auto-translation & checkbox logic
   const handleChange = async (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
@@ -295,9 +314,31 @@ const EditSurvey = () => {
     }
 
     setFormData((prev) => {
-      const newData = { ...prev, [name]: value };
-      return newData;
+      if (name === "property_type" && value !== "बहुमजली इमारत") {
+        return {
+          ...prev,
+          property_type: String(value),
+          number_of_building: "",
+        };
+      }
+      return { ...prev, [name]: value };
     });
+
+    // Sync water connection owner names if checkbox is checked
+    if (sameOwnerNames) {
+      if (name === "property_owner_name") {
+        setFormData((prev) => ({
+          ...prev,
+          water_connection_owner_name: value as string,
+        }));
+      }
+      if (name === "property_owner_name_marathi") {
+        setFormData((prev) => ({
+          ...prev,
+          water_connection_owner_name_marathi: value as string,
+        }));
+      }
+    }
 
     // Auto-translate to Marathi
     const englishToMarathiMap: Record<string, string> = {
@@ -311,7 +352,72 @@ const EditSurvey = () => {
       const marathiField = englishToMarathiMap[name];
       const translatedText = await translateToMarathi(value);
       setFormData((prev) => ({ ...prev, [marathiField]: translatedText }));
+
+      if (name === "property_owner_name" && sameOwnerNames) {
+        setFormData((prev) => ({
+          ...prev,
+          water_connection_owner_name_marathi: translatedText,
+        }));
+      }
     }
+  };
+
+  // Camera functions
+  const startCamera = async () => {
+    setShowCamera(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (error) {
+      console.error("Camera error:", error);
+      toast.error("Camera not accessible");
+    }
+  };
+
+  const stopCamera = () => {
+    setShowCamera(false);
+    const stream = videoRef.current?.srcObject as MediaStream;
+    stream?.getTracks().forEach((track) => track.stop());
+  };
+
+  const captureImage = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    const ctx = canvas.getContext("2d");
+    if (ctx) ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const imageData = canvas.toDataURL("image/jpeg");
+    setCapturedImage(imageData);
+
+    // Convert base64 to File
+    const arr = imageData.split(",");
+    const mime = arr[0].match(/:(.*?);/)![1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) u8arr[n] = bstr.charCodeAt(n);
+
+    const file = new File([u8arr], "connection_photo.jpg", { type: mime });
+
+    setFormData((prev) => ({
+      ...prev,
+      connection_photo: file,
+    }));
+
+    stopCamera();
+  };
+
+  const removeImage = () => {
+    setCapturedImage(null);
+    setFormData((prev) => ({ ...prev, connection_photo: null }));
   };
 
   // Handle submit
@@ -320,13 +426,11 @@ const EditSurvey = () => {
     setIsLoading(true);
 
     try {
-      // Validate required fields
       if (!formData.ward_no || !formData.property_no) {
         toast.error("Please fill in Ward No and Property No");
         return;
       }
 
-      // Create FormData for file upload
       const submitData = new FormData();
       Object.keys(formData).forEach((key) => {
         const value = formData[key as keyof SurveyFormData];
@@ -342,7 +446,6 @@ const EditSurvey = () => {
         }
       });
 
-      // Submit data
       const result = await updateSurveyService(parseInt(id || "0"), submitData);
       toast.success("Survey updated successfully!");
       console.log("Survey Response:", result);
@@ -365,7 +468,7 @@ const EditSurvey = () => {
     }
   };
 
-  // Show loading spinner
+  // Loading state
   if (isInitialLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-white dark:bg-gray-800">
@@ -384,7 +487,7 @@ const EditSurvey = () => {
     );
   }
 
-  // Show error state
+  // Error state
   if (fetchError) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-800 p-6">
@@ -428,7 +531,7 @@ const EditSurvey = () => {
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-              Water Connection Survey
+              Edit Water Connection Survey
             </h2>
             <div className="flex gap-2">
               <Button
@@ -451,7 +554,7 @@ const EditSurvey = () => {
 
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-6">
-            {/* 2-4. Ward, Property, Description */}
+            {/* Property Information */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Property Information
@@ -466,7 +569,6 @@ const EditSurvey = () => {
                   onChange={handleChange}
                   required
                 />
-
                 <InputField
                   label="Property No"
                   placeholder="Enter Property No"
@@ -477,56 +579,61 @@ const EditSurvey = () => {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <InputField
-                label="Owner Name (English)"
-                placeholder="Enter owner name"
-                name="property_owner_name"
-                value={formData.property_owner_name}
-                onChange={handleChange}
-              />
-              <InputField
-                label="मालक नाव (मराठी)"
-                placeholder="मालक नाव टाका (auto-filled)"
-                name="property_owner_name_marathi"
-                value={formData.property_owner_name_marathi}
-                onChange={handleChange}
-                isMarathi={true}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <InputField
-                label="Property Type"
-                name="property_type"
-                value={formData.property_type}
-                onChange={handleChange}
-                type="select"
-                options={propertyTypeOptions}
-                placeholder="Select property type"
-              />
-              <InputField
-                label="Property Description"
-                name="property_description"
-                value={formData.property_description}
-                onChange={handleChange}
-                type="select"
-                options={propertyDescriptionOptions}
-                placeholder="Select description"
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {formData.property_type === "बहुमजली इमारत" && (
+
+            {/* Owner names, property type and description */}
+            <div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <InputField
-                  label="Number of Building"
+                  label="Owner Name (English)"
+                  placeholder="Enter owner name"
+                  name="property_owner_name"
+                  value={formData.property_owner_name}
+                  onChange={handleChange}
+                />
+                <InputField
+                  label="मालक नाव (मराठी)"
+                  placeholder="मालक नाव टाका (auto-filled)"
+                  name="property_owner_name_marathi"
+                  value={formData.property_owner_name_marathi}
+                  onChange={handleChange}
+                  isMarathi={true}
+                />
+                <InputField
+                  label="Property Type"
+                  name="property_type"
+                  value={formData.property_type}
+                  onChange={handleChange}
+                  type="select"
+                  options={propertyTypeOptions}
+                  placeholder="Select property type"
+                />
+                <InputField
+                  label="Property Description"
+                  name="property_description"
+                  value={formData.property_description}
+                  onChange={handleChange}
+                  type="select"
+                  options={propertyDescriptionOptions}
+                  placeholder="Select description"
+                />
+              </div>
+            </div>
+
+            {/* Conditional number_of_building field */}
+            {formData.property_type === "बहुमजली इमारत" && (
+              <div className="mt-4">
+                <InputField
+                  label="Number of Buildings"
                   name="number_of_building"
                   value={formData.number_of_building}
                   onChange={handleChange}
                   placeholder="Enter number of buildings"
+                  type="number"
                 />
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* 8-9. Water Connection Owner */}
+            {/* Connection Details */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Connection Details
@@ -541,7 +648,9 @@ const EditSurvey = () => {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+            {/* Water connection owner names and sync checkbox */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-center">
               <InputField
                 label="Water Connection Owner Name (English)"
                 placeholder="Enter connection owner name"
@@ -557,34 +666,51 @@ const EditSurvey = () => {
                 onChange={handleChange}
                 isMarathi={true}
               />
+              <label className="flex items-center text-sm ml-2">
+                <input
+                  type="checkbox"
+                  checked={sameOwnerNames}
+                  onChange={(e) => {
+                    setSameOwnerNames(e.target.checked);
+                    if (e.target.checked) {
+                      setFormData((prev) => ({
+                        ...prev,
+                        water_connection_owner_name: prev.property_owner_name,
+                        water_connection_owner_name_marathi:
+                          prev.property_owner_name_marathi,
+                      }));
+                    }
+                  }}
+                />
+                <span className="ml-1">
+                  Same as Owner Name / मालक नावासारखेच
+                </span>
+              </label>
             </div>
 
-            {/* 10-12. Connection Details */}
-            <div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <InputField
-                  label="Connection Type"
-                  name="connection_type"
-                  value={formData.connection_type}
-                  onChange={handleChange}
-                  type="select"
-                  options={connectionTypeOptions}
-                  placeholder="Select connection type"
-                />
-
-                <InputField
-                  label="Connection Size"
-                  name="connection_size"
-                  value={formData.connection_size}
-                  onChange={handleChange}
-                  type="select"
-                  options={connectionSizes}
-                  placeholder="Select connection size"
-                />
-              </div>
+            {/* Connection type and size */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <InputField
+                label="Connection Type"
+                name="connection_type"
+                value={formData.connection_type}
+                onChange={handleChange}
+                type="select"
+                options={connectionTypeOptions}
+                placeholder="Select connection type"
+              />
+              <InputField
+                label="Connection Size"
+                name="connection_size"
+                value={formData.connection_size}
+                onChange={handleChange}
+                type="select"
+                options={connectionSizes}
+                placeholder="Select connection size"
+              />
             </div>
 
-            {/* 13-14. Water Connection & Mobile */}
+            {/* Number of water connections and mobile number */}
             <div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <InputField
@@ -606,22 +732,77 @@ const EditSurvey = () => {
               </div>
             </div>
 
+            {/* Connection photo with camera capture */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Connection Photo
               </h3>
-              <div className="grid grid-cols-1 gap-5">
-                <InputField
-                  label="Upload Photo"
-                  name="connection_photo"
-                  value={formData.connection_photo}
-                  onChange={handleChange}
-                  type="file"
-                />
+
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={startCamera}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+                >
+                  Capture Image
+                </button>
+
+                {capturedImage && (
+                  <div className="relative w-40">
+                    <img
+                      src={capturedImage}
+                      alt="Captured"
+                      className="w-40 h-32 object-cover rounded-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+
+                {/* Show existing photo if available */}
+                {!capturedImage &&
+                  formData.connection_photo &&
+                  typeof formData.connection_photo === "string" && (
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Current photo: {formData.connection_photo}
+                      </p>
+                    </div>
+                  )}
               </div>
             </div>
 
-            {/* 15. Address, 16. Road Name, 17. Pincode */}
+            <Modal
+              title="Capture Connection Photo"
+              open={showCamera}
+              onCancel={stopCamera}
+              footer={[
+                <Button key="cancel" onClick={stopCamera}>
+                  Cancel
+                </Button>,
+                <Button key="capture" type="primary" onClick={captureImage}>
+                  Capture
+                </Button>,
+              ]}
+              width={700}
+            >
+              <div className="text-center">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full max-w-md mx-auto rounded-lg"
+                />
+                <canvas ref={canvasRef} style={{ display: "none" }} />
+              </div>
+            </Modal>
+
+            {/* Address fields */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Address
@@ -645,13 +826,6 @@ const EditSurvey = () => {
                 />
               </div>
               <div className="grid grid-cols-2 gap-5">
-                {/* <InputField
-                  label="Road Name"
-                  name="road_name"
-                  value={formData.road_name}
-                  onChange={handleChange}
-                  placeholder="Enter road name"
-                /> */}
                 <InputField
                   label="Pincode"
                   name="pincode"
@@ -663,7 +837,7 @@ const EditSurvey = () => {
               </div>
             </div>
 
-            {/* 16-18. Tax Information */}
+            {/* Tax Information */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Tax Information
@@ -691,14 +865,13 @@ const EditSurvey = () => {
                   value={formData.total_tax}
                   onChange={handleChange}
                   type="number"
-                  placeholder="Enter total tax"
+                  placeholder="Total tax will be calculated automatically"
+                  readOnly
                 />
               </div>
             </div>
 
-            {/* 19. Connection Photo */}
-
-            {/* 20-21. Remarks */}
+            {/* Remarks */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                 Remarks

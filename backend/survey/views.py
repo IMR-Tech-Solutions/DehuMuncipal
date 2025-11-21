@@ -37,7 +37,7 @@ class SurveyCreateView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def post(self, request, *args, **kwargs):
-        data = request.data  # FIX: Use request.data AS-IS to avoid copy/deepcopy error
+        data = request.data 
 
         ward_no = data.get("ward_no")
         property_no = data.get("property_no")

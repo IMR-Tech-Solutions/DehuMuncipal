@@ -78,6 +78,8 @@ class Survey(models.Model):
     road_name = models.CharField(max_length=200, blank=True, null=True)
     pincode = models.CharField(max_length=10, blank=True, null=True)
     
+    pdfreport = models.FileField(upload_to='reports/', blank=True, null=True)
+
     # Timestamps
     created_by = models.ForeignKey(UserMaster, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
