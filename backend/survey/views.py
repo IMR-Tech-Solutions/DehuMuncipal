@@ -193,95 +193,57 @@ class SurveyListView(APIView):
 # ==============================
 # Excel Export
 # ==============================
-@method_decorator(csrf_exempt, name="dispatch")
-class SurveyExcelExportView(APIView):
-    """Export Survey data to Excel"""
 
+# ==============================
+# 1. EXPORT ALL SURVEYS
+# ==============================
+@method_decorator(csrf_exempt, name="dispatch")
+class SurveyExcelExportAllView(APIView):
+    """Export ALL Survey data to Excel"""
+    
     permission_classes = [IsAuthenticated, HasModuleAccess]
     required_permission = "export-survey"
-
-    def post(self, request):
+    
+    def get(self, request):
         try:
-            # Get parameters from request
-            ward_no = request.data.get("ward_no")
-            property_no_start = request.data.get("property_no_start")
-            property_no_end = request.data.get("property_no_end")
-
-            # Validation
-            if not ward_no:
-                return Response(
-                    {"success": False, "message": "Ward number is required"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            if not property_no_start or not property_no_end:
-                return Response(
-                    {"success": False, "message": "Property number range is required"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            try:
-                property_start = int(property_no_start)
-                property_end = int(property_no_end)
-                ward_number = int(ward_no)
-            except ValueError:
-                return Response(
-                    {"success": False, "message": "Please enter valid numbers"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            if property_start > property_end:
-                return Response(
-                    {
-                        "success": False,
-                        "message": "Start property number should be less than end property number",
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            # Filter surveys
-            surveys = Survey.objects.filter(
-                ward_no=ward_number,
-                property_no__gte=property_start,
-                property_no__lte=property_end,
-            ).order_by("property_no")
-
+            # Get all surveys
+            surveys = Survey.objects.all().order_by('ward_no', 'property_no')
+            
             if not surveys.exists():
                 return Response(
-                    {
-                        "success": False,
-                        "message": f"No data found for Ward {ward_number}, Property No. {property_start}-{property_end}",
-                    },
+                    {"success": False, "message": "No surveys found to export"},
                     status=status.HTTP_404_NOT_FOUND,
                 )
-
+            
             # Generate Excel file
-            excel_file = self.generate_excel(surveys, ward_number, property_start, property_end)
-
+            excel_file = self.generate_excel(surveys)
+            
             # Create response
             response = HttpResponse(
                 excel_file.getvalue(),
                 content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
-
-            filename = f'Survey_Ward_{ward_number}_Property_{property_start}_to_{property_end}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+            
+            filename = f'Survey_All_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
             response["Content-Disposition"] = f'attachment; filename="{filename}"'
-
+            
+            logger.info(f"Exported all surveys: {surveys.count()} records")
             return response
-
+            
         except Exception as e:
+            logger.error(f"Export all surveys error: {str(e)}")
             return Response(
                 {"success": False, "message": f"Export error: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
-    def generate_excel(self, surveys, ward_no, property_start, property_end):
+    
+    def generate_excel(self, surveys):
         """Generate Excel file with Survey data"""
-
+        
         wb = Workbook()
         ws = wb.active
-        ws.title = "Survey Data"
-
+        ws.title = "All Surveys"
+        
         # Headers
         headers = [
             "id",
@@ -311,35 +273,35 @@ class SurveyExcelExportView(APIView):
             "created_at",
             "updated_at",
         ]
-
+        
         ws.append(headers)
-
+        
         # Helper function
         def make_naive(dt):
             if isinstance(dt, datetime):
                 return dt.replace(tzinfo=None)
             return dt
-
+        
         # Write data rows
         for survey in surveys:
             row = []
             for fld in headers:
                 val = getattr(survey, fld, "")
                 if fld == "created_by" and val:
-                    val = val.email 
+                    val = val.email
                 row.append(make_naive(val))
             ws.append(row)
-
+        
         # Style headers
         header_font = Font(bold=True, color="FFFFFF")
         header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
         header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-
+        
         for cell in ws[1]:
             cell.font = header_font
             cell.fill = header_fill
             cell.alignment = header_alignment
-
+        
         # Auto-adjust column widths
         for column in ws.columns:
             max_length = 0
@@ -352,14 +314,338 @@ class SurveyExcelExportView(APIView):
                     pass
             adjusted_width = min(max_length + 2, 50)
             ws.column_dimensions[column_letter].width = adjusted_width
-
+        
         # Save Excel
         excel_file = io.BytesIO()
         wb.save(excel_file)
         excel_file.seek(0)
-
+        
         return excel_file
 
+
+# ==============================
+# 2. EXPORT WARD-WISE SURVEYS
+# ==============================
+@method_decorator(csrf_exempt, name="dispatch")
+class SurveyExcelExportWardWiseView(APIView):
+    """Export Survey data by Ward Number"""
+    
+    permission_classes = [IsAuthenticated, HasModuleAccess]
+    required_permission = "export-survey"
+    
+    def post(self, request):
+        try:
+            # Get ward number from request
+            ward_no = request.data.get("ward_no")
+            
+            # Validation
+            if not ward_no:
+                return Response(
+                    {"success": False, "message": "Ward number is required"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            try:
+                ward_number = int(ward_no)
+            except ValueError:
+                return Response(
+                    {"success": False, "message": "Please enter valid ward number"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            # Filter surveys by ward
+            surveys = Survey.objects.filter(
+                ward_no=ward_number
+            ).order_by('property_no')
+            
+            if not surveys.exists():
+                return Response(
+                    {
+                        "success": False,
+                        "message": f"No data found for Ward {ward_number}",
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            
+            # Generate Excel file
+            excel_file = self.generate_excel(surveys, ward_number)
+            
+            # Create response
+            response = HttpResponse(
+                excel_file.getvalue(),
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            
+            filename = f'Survey_Ward_{ward_number}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            
+            logger.info(f"Exported ward-wise surveys for Ward {ward_number}: {surveys.count()} records")
+            return response
+            
+        except Exception as e:
+            logger.error(f"Export ward-wise surveys error: {str(e)}")
+            return Response(
+                {"success": False, "message": f"Export error: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+    
+    def generate_excel(self, surveys, ward_number):
+        """Generate Excel file with Ward-wise Survey data"""
+        
+        wb = Workbook()
+        ws = wb.active
+        ws.title = f"Ward {ward_number}"
+        
+        # Headers
+        headers = [
+            "id",
+            "ward_no",
+            "property_no",
+            "old_connection_number",
+            "property_description",
+            "property_owner_name",
+            "property_owner_name_marathi",
+            "property_type",
+            "number_of_building",
+            "water_connection_owner_name",
+            "water_connection_owner_name_marathi",
+            "connection_type",
+            "connection_size",
+            "number_of_water_connections",
+            "mobile_number",
+            "pincode",
+            "address",
+            "address_marathi",
+            "pending_tax",
+            "current_tax",
+            "total_tax",
+            "remarks",
+            "remarks_marathi",
+            "created_by",
+            "created_at",
+            "updated_at",
+        ]
+        
+        ws.append(headers)
+        
+        # Helper function
+        def make_naive(dt):
+            if isinstance(dt, datetime):
+                return dt.replace(tzinfo=None)
+            return dt
+        
+        # Write data rows
+        for survey in surveys:
+            row = []
+            for fld in headers:
+                val = getattr(survey, fld, "")
+                if fld == "created_by" and val:
+                    val = val.email
+                row.append(make_naive(val))
+            ws.append(row)
+        
+        # Style headers
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        
+        for cell in ws[1]:
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+        
+        # Save Excel
+        excel_file = io.BytesIO()
+        wb.save(excel_file)
+        excel_file.seek(0)
+        
+        return excel_file
+
+
+# ==============================
+# 3. EXPORT PROPERTY RANGE-WISE SURVEYS
+# ==============================
+@method_decorator(csrf_exempt, name="dispatch")
+class SurveyExcelExportPropertyRangeView(APIView):
+    """Export Survey data by Ward and Property Range"""
+    
+    permission_classes = [IsAuthenticated, HasModuleAccess]
+    required_permission = "export-survey"
+    
+    def post(self, request):
+        try:
+            # Get parameters from request
+            ward_no = request.data.get("ward_no")
+            property_no_start = request.data.get("property_no_start")
+            property_no_end = request.data.get("property_no_end")
+            
+            # Validation
+            if not ward_no:
+                return Response(
+                    {"success": False, "message": "Ward number is required"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            if not property_no_start or not property_no_end:
+                return Response(
+                    {"success": False, "message": "Property number range is required"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            try:
+                property_start = int(property_no_start)
+                property_end = int(property_no_end)
+                ward_number = int(ward_no)
+            except ValueError:
+                return Response(
+                    {"success": False, "message": "Please enter valid numbers"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            if property_start > property_end:
+                return Response(
+                    {
+                        "success": False,
+                        "message": "Start property number should be less than or equal to end property number",
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            
+            # Filter surveys by ward and property range
+            surveys = Survey.objects.filter(
+                ward_no=ward_number,
+                property_no__gte=property_start,
+                property_no__lte=property_end,
+            ).order_by("property_no")
+            
+            if not surveys.exists():
+                return Response(
+                    {
+                        "success": False,
+                        "message": f"No data found for Ward {ward_number}, Property No. {property_start}-{property_end}",
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            
+            # Generate Excel file
+            excel_file = self.generate_excel(surveys, ward_number, property_start, property_end)
+            
+            # Create response
+            response = HttpResponse(
+                excel_file.getvalue(),
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            
+            filename = f'Survey_Ward_{ward_number}_Property_{property_start}_to_{property_end}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            
+            logger.info(f"Exported property range surveys for Ward {ward_number}, Property {property_start}-{property_end}: {surveys.count()} records")
+            return response
+            
+        except Exception as e:
+            logger.error(f"Export property range surveys error: {str(e)}")
+            return Response(
+                {"success": False, "message": f"Export error: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+    
+    def generate_excel(self, surveys, ward_number, property_start, property_end):
+        """Generate Excel file with Property Range Survey data"""
+        
+        wb = Workbook()
+        ws = wb.active
+        ws.title = f"Ward {ward_number}"
+        
+        # Headers
+        headers = [
+            "id",
+            "ward_no",
+            "property_no",
+            "old_connection_number",
+            "property_description",
+            "property_owner_name",
+            "property_owner_name_marathi",
+            "property_type",
+            "number_of_building",
+            "water_connection_owner_name",
+            "water_connection_owner_name_marathi",
+            "connection_type",
+            "connection_size",
+            "number_of_water_connections",
+            "mobile_number",
+            "pincode",
+            "address",
+            "address_marathi",
+            "pending_tax",
+            "current_tax",
+            "total_tax",
+            "remarks",
+            "remarks_marathi",
+            "created_by",
+            "created_at",
+            "updated_at",
+        ]
+        
+        ws.append(headers)
+        
+        # Helper function
+        def make_naive(dt):
+            if isinstance(dt, datetime):
+                return dt.replace(tzinfo=None)
+            return dt
+        
+        # Write data rows
+        for survey in surveys:
+            row = []
+            for fld in headers:
+                val = getattr(survey, fld, "")
+                if fld == "created_by" and val:
+                    val = val.email
+                row.append(make_naive(val))
+            ws.append(row)
+        
+        # Style headers
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        
+        for cell in ws[1]:
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+        
+        # Save Excel
+        excel_file = io.BytesIO()
+        wb.save(excel_file)
+        excel_file.seek(0)
+        
+        return excel_file
 
 # ==============================
 # Excel Import

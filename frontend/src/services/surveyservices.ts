@@ -36,14 +36,66 @@ export const updateSurveyService = async (
   return response.data;
 };
 
-// 📊 Export Surveys to Excel
-export const exportSurveysToExcelService = async (exportParams: {
+// 📊 Export All Surveys to Excel
+export const exportAllSurveysToExcelService = async () => {
+  try {
+    const response = await api.get("surveys/export-all/", {
+      responseType: "blob",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      timeout: 60000,
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      throw new Error("No surveys found to export");
+    } else if (error.response?.status === 500) {
+      throw new Error("Server error occurred during export");
+    } else if (error.code === "ECONNABORTED") {
+      throw new Error("Export timeout - please try again");
+    } else {
+      throw new Error("Failed to export data. Please try again.");
+    }
+  }
+};
+
+// 📊 Export Ward-wise Surveys to Excel
+export const exportWardWiseSurveysToExcelService = async (params: {
+  ward_no: number;
+}) => {
+  try {
+    const response = await api.post("surveys/export-ward-wise/", params, {
+      responseType: "blob",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      timeout: 60000,
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      throw new Error("No data found for the specified ward");
+    } else if (error.response?.status === 400) {
+      throw new Error("Invalid ward number provided");
+    } else if (error.response?.status === 500) {
+      throw new Error("Server error occurred during export");
+    } else if (error.code === "ECONNABORTED") {
+      throw new Error("Export timeout - please try again");
+    } else {
+      throw new Error("Failed to export data. Please try again.");
+    }
+  }
+};
+
+// 📊 Export Property Range Surveys to Excel
+export const exportPropertyRangeSurveysToExcelService = async (params: {
   ward_no: number;
   property_no_start: number;
   property_no_end: number;
 }) => {
   try {
-    const response = await api.post("surveys/export-excel/", exportParams, {
+    const response = await api.post("surveys/export-property-range/", params, {
       responseType: "blob",
       headers: {
         "Content-Type": "application/json",

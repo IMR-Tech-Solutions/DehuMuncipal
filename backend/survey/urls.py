@@ -10,7 +10,14 @@ urlpatterns = [
     path('surveys/<int:pk>/', views.SurveyDetailView.as_view(), name='survey-detail'),
     
     # Excel Export URL
-    path('surveys/export-excel/', views.SurveyExcelExportView.as_view(), name='survey-excel-export'),
+    # 1. Export ALL surveys (No parameters needed)
+    path('surveys/export-all/', views.SurveyExcelExportAllView.as_view(), name='survey-export-all'),
+    
+    # 2. Export Ward-wise (Pass ward_no)
+    path('surveys/export-ward-wise/', views.SurveyExcelExportWardWiseView.as_view(), name='survey-export-ward-wise'),
+    
+    # 3. Export Property Range-wise (Pass ward_no, property_no_start, property_no_end)
+    path('surveys/export-property-range/', views.SurveyExcelExportPropertyRangeView.as_view(), name='survey-export-property-range'),
 
     # Excel Import URL
     path('surveys/import-excel/', views.SurveyExcelImportView.as_view(), name='survey-excel-import'),

@@ -28,6 +28,7 @@ import {
   Typography,
   Card,
   Tooltip,
+  Select,
 } from "antd";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
@@ -39,7 +40,9 @@ import PageMeta from "../../components/common/PageMeta";
 import {
   deleteSurveyService,
   downloadExcelFile,
-  exportSurveysToExcelService,
+  exportAllSurveysToExcelService,
+  exportWardWiseSurveysToExcelService,
+  exportPropertyRangeSurveysToExcelService,
   getAllSurveysService,
   importSurveysFromExcelService,
   downloadExcelTemplateService,
@@ -70,9 +73,10 @@ interface SurveyData {
 }
 
 interface ExportFormValues {
-  ward_no: number;
-  property_no_start: number;
-  property_no_end: number;
+  export_type?: string;
+  ward_no?: number;
+  property_no_start?: number;
+  property_no_end?: number;
 }
 
 interface ImportResult {
@@ -93,6 +97,7 @@ const Surveys = () => {
   // Export Modal States
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [exportType, setExportType] = useState<string>("all"); // all, ward-wise, property-range
 
   // Import Modal States
   const [importModalVisible, setImportModalVisible] = useState(false);
@@ -210,18 +215,82 @@ const Surveys = () => {
     navigate(`/survey/${id}`);
   };
 
-  // Export Functions (same as your existing code)
+  // ============================================
+  // EXPORT FUNCTIONS - 3 Types
+  // ============================================
+
   const showExportModal = () => {
     setExportModalVisible(true);
+    setExportType("all");
     exportForm.resetFields();
   };
 
   const handleExportCancel = () => {
     setExportModalVisible(false);
     exportForm.resetFields();
+    setExportType("all");
   };
 
-  const handleExportSubmit = async (values: ExportFormValues) => {
+  // 1. Export All Surveys
+  const handleExportAll = async () => {
+    setExportLoading(true);
+    try {
+      const blob = await exportAllSurveysToExcelService();
+      const filename = `Survey_All_${
+        new Date().toISOString().split("T")[0]
+      }.xlsx`;
+      downloadExcelFile(blob, filename);
+      toast.success("All surveys exported successfully!");
+      setExportModalVisible(false);
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  // 2. Export Ward-wise
+  const handleExportWardWise = async (values: any) => {
+    if (!values.ward_no) {
+      toast.error("Please select a ward number");
+      return;
+    }
+
+    setExportLoading(true);
+    try {
+      const exportParams = {
+        ward_no: values.ward_no,
+      };
+
+      const blob = await exportWardWiseSurveysToExcelService(exportParams);
+      const filename = `Survey_Ward_${values.ward_no}_${
+        new Date().toISOString().split("T")[0]
+      }.xlsx`;
+
+      downloadExcelFile(blob, filename);
+
+      toast.success("Ward-wise surveys exported successfully!");
+      setExportModalVisible(false);
+      exportForm.resetFields();
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  // 3. Export Property Range-wise
+  const handleExportPropertyRange = async (values: any) => {
+    if (!values.ward_no) {
+      toast.error("Please enter ward number");
+      return;
+    }
+
+    if (!values.property_no_start || !values.property_no_end) {
+      toast.error("Please enter property number range");
+      return;
+    }
+
     if (values.property_no_start > values.property_no_end) {
       toast.error(
         "Property start number should be less than or equal to end number"
@@ -237,7 +306,7 @@ const Surveys = () => {
         property_no_end: values.property_no_end,
       };
 
-      const blob = await exportSurveysToExcelService(exportParams);
+      const blob = await exportPropertyRangeSurveysToExcelService(exportParams);
       const filename = `Survey_Ward_${values.ward_no}_Property_${
         values.property_no_start
       }_to_${values.property_no_end}_${
@@ -246,7 +315,7 @@ const Surveys = () => {
 
       downloadExcelFile(blob, filename);
 
-      toast.success("Excel file exported successfully!");
+      toast.success("Property range surveys exported successfully!");
       setExportModalVisible(false);
       exportForm.resetFields();
     } catch (err) {
@@ -256,7 +325,24 @@ const Surveys = () => {
     }
   };
 
-  // Import Functions (same as your existing code)
+  // Main export handler
+  const handleExportSubmit = async (values: ExportFormValues) => {
+    if (exportType === "all") {
+      await handleExportAll();
+    } else if (exportType === "ward-wise") {
+      await handleExportWardWise(values);
+    } else if (exportType === "property-range") {
+      await handleExportPropertyRange(values);
+    }
+  };
+
+  // Get unique ward numbers for dropdown
+  const getUniqueWardNumbers = () => {
+    const wardNumbers = [...new Set(surveys.map((survey) => survey.ward_no))];
+    return wardNumbers.filter((ward) => ward).sort((a, b) => a - b);
+  };
+
+  // Import Functions
   const showImportModal = () => {
     setImportModalVisible(true);
     setImportResult(null);
@@ -271,8 +357,8 @@ const Surveys = () => {
 
   const handleFileUpload = async (file: File) => {
     const validTypes = [
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-excel'
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-excel",
     ];
 
     if (!validTypes.includes(file.type)) {
@@ -302,7 +388,9 @@ const Surveys = () => {
       setImportResult(result);
 
       if (result.success) {
-        toast.success(`Import completed! ${result.success_count} surveys imported successfully`);
+        toast.success(
+          `Import completed! ${result.success_count} surveys imported successfully`
+        );
         if (result.error_count > 0) {
           toast.warning(`${result.error_count} records had errors`);
         }
@@ -317,7 +405,7 @@ const Surveys = () => {
         message: err.message || "Import failed",
         success_count: 0,
         error_count: 0,
-        errors: []
+        errors: [],
       });
     } finally {
       setImportLoading(false);
@@ -328,7 +416,9 @@ const Surveys = () => {
     setTemplateDownloading(true);
     try {
       const blob = await downloadExcelTemplateService();
-      const filename = `Survey_Import_Template_${new Date().toISOString().split("T")[0]}.xlsx`;
+      const filename = `Survey_Import_Template_${
+        new Date().toISOString().split("T")[0]
+      }.xlsx`;
       downloadExcelFile(blob, filename);
       toast.success("Template downloaded successfully!");
     } catch (err: any) {
@@ -339,32 +429,31 @@ const Surveys = () => {
   };
 
   const uploadProps = {
-    name: 'excel_file',
+    name: "excel_file",
     multiple: false,
-    accept: '.xlsx,.xls',
+    accept: ".xlsx,.xls",
     beforeUpload: handleFileUpload,
     onRemove: () => {
       setUploadedFile(null);
       setImportResult(null);
     },
-    fileList: uploadedFile ? [{
-      uid: '1',
-      name: uploadedFile.name,
-      status: 'done' as const,
-      size: uploadedFile.size,
-    }] : [],
+    fileList: uploadedFile
+      ? [
+          {
+            uid: "1",
+            name: uploadedFile.name,
+            status: "done" as const,
+            size: uploadedFile.size,
+          },
+        ]
+      : [],
     showUploadList: {
       showPreviewIcon: false,
       showDownloadIcon: false,
-    }
+    },
   };
 
-  const getUniqueWardNumbers = () => {
-    const wardNumbers = [...new Set(surveys.map((survey) => survey.ward_no))];
-    return wardNumbers.filter((ward) => ward).sort((a, b) => a - b);
-  };
-
-  // Table columns - UPDATED
+  // Table columns
   const columns = [
     {
       title: "Sr. No",
@@ -471,7 +560,7 @@ const Surveys = () => {
         addButtonText="Create New Survey"
         onAddClick={() => navigate("/create-survey")}
       >
-        {/* Search Section - UPDATED */}
+        {/* Search Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
           <Search
             placeholder="Search by Ward No"
@@ -487,7 +576,9 @@ const Surveys = () => {
           />
           <Search
             placeholder="Search by Property Description"
-            onChange={(e) => handleSearch("propertyDescription", e.target.value)}
+            onChange={(e) =>
+              handleSearch("propertyDescription", e.target.value)
+            }
             allowClear
             className="w-full"
           />
@@ -517,7 +608,7 @@ const Surveys = () => {
           </Tooltip>
         </div>
 
-        {/* Statistics Cards - UPDATED */}
+        {/* Statistics Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
           <Card size="small" className="text-center">
             <div className="text-2xl font-bold text-blue-600">
@@ -560,7 +651,9 @@ const Surveys = () => {
         />
       </ComponentCard>
 
-      {/* Export Modal - SAME AS YOUR EXISTING CODE */}
+      {/* ============================================ */}
+      {/* EXPORT MODAL - 3 Export Types */}
+      {/* ============================================ */}
       <Modal
         title={
           <div className="flex items-center">
@@ -571,83 +664,213 @@ const Surveys = () => {
         open={exportModalVisible}
         onCancel={handleExportCancel}
         footer={null}
-        width={500}
+        width={600}
       >
         <Divider />
-        <Form
-          form={exportForm}
-          layout="vertical"
-          onFinish={handleExportSubmit}
-          initialValues={{
-            ward_no: undefined,
-            property_no_start: 1,
-            property_no_end: 10,
-          }}
-        >
+
+        {/* Export Type Selection */}
+        <Form form={exportForm} layout="vertical" onFinish={handleExportSubmit}>
           <Form.Item
-            name="ward_no"
             label={
-              <span className="font-medium">
-                [translate:वार्ड क्रमांक] / Ward Number{" "}
-                <span className="text-red-500">*</span>
+              <span className="font-medium text-base">
+                Select Export Type <span className="text-red-500">*</span>
               </span>
             }
-            rules={[
-              { required: true, message: "Please enter ward number!" },
-              { type: "number", min: 1, message: "Ward number must be positive!" },
-            ]}
           >
-            <InputNumber
-              placeholder="[translate:वार्ड क्रमांक प्रविष्ट करा] (Enter ward number)"
-              style={{ width: "100%" }}
-              min={1}
-            />
+            <div className="grid grid-cols-3 gap-3">
+              <Button
+                size="large"
+                type={exportType === "all" ? "primary" : "default"}
+                onClick={() => {
+                  setExportType("all");
+                  exportForm.resetFields([
+                    "ward_no",
+                    "property_no_start",
+                    "property_no_end",
+                  ]);
+                }}
+                className="!h-20 flex flex-col items-center justify-center"
+              >
+                <FileExcelOutlined className="text-xl mb-1" />
+                <span className="text-xs">All Surveys</span>
+              </Button>
+
+              <Button
+                size="large"
+                type={exportType === "ward-wise" ? "primary" : "default"}
+                onClick={() => {
+                  setExportType("ward-wise");
+                  exportForm.resetFields([
+                    "property_no_start",
+                    "property_no_end",
+                  ]);
+                }}
+                className="!h-20 flex flex-col items-center justify-center"
+              >
+                <FileExcelOutlined className="text-xl mb-1" />
+                <span className="text-xs">Ward-wise</span>
+              </Button>
+
+              <Button
+                size="large"
+                type={exportType === "property-range" ? "primary" : "default"}
+                onClick={() => {
+                  setExportType("property-range");
+                }}
+                className="!h-20 flex flex-col items-center justify-center"
+              >
+                <FileExcelOutlined className="text-xl mb-1" />
+                <span className="text-xs PY-5">Property Range</span>
+              </Button>
+            </div>
           </Form.Item>
 
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item
-                name="property_no_start"
-                label={
-                  <span className="font-medium">
-                    [translate:मालमत्ता क्र. (पासून)] / Property No. (From){" "}
-                    <span className="text-red-500">*</span>
-                  </span>
-                }
-                rules={[
-                  { required: true, message: "Please enter start property number!" },
-                  { type: "number", min: 1, message: "Property number must be positive!" },
-                ]}
-              >
-                <InputNumber placeholder="1" style={{ width: "100%" }} min={1} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item
-                name="property_no_end"
-                label={
-                  <span className="font-medium">
-                    [translate:मालमत्ता क्र. (पर्यंत)] / Property No. (To){" "}
-                    <span className="text-red-500">*</span>
-                  </span>
-                }
-                rules={[
-                  { required: true, message: "Please enter end property number!" },
-                  { type: "number", min: 1, message: "Property number must be positive!" },
-                ]}
-              >
-                <InputNumber placeholder="10" style={{ width: "100%" }} min={1} />
-              </Form.Item>
-            </Col>
-          </Row>
+          <Divider />
 
-          <div className="flex justify-end space-x-2">
-            <Button onClick={handleExportCancel}>Cancel</Button>
+          {/* Export Type 1: All Surveys */}
+          {exportType === "all" && (
+            <Card className="bg-blue-50 border-blue-200">
+              <p className="text-center text-blue-800">
+                ✅ Export all {surveys.length} surveys to Excel file
+              </p>
+              <p className="text-center text-sm text-blue-600 mt-2">
+                No additional parameters needed
+              </p>
+            </Card>
+          )}
+
+          {/* Export Type 2: Ward-wise */}
+          {exportType === "ward-wise" && (
+            <>
+              <Form.Item
+                name="ward_no"
+                label={
+                  <span className="font-medium">
+                    Ward Number <span className="text-red-500">*</span>
+                  </span>
+                }
+                rules={[
+                  { required: true, message: "Please select a ward number!" },
+                ]}
+              >
+                <Select
+                  placeholder="Select Ward Number"
+                  options={getUniqueWardNumbers().map((ward) => ({
+                    label: `Ward ${ward}`,
+                    value: ward,
+                  }))}
+                />
+              </Form.Item>
+
+              <Alert
+                type="info"
+                message="Ward-wise Export"
+                description="Export all surveys for the selected ward"
+                showIcon
+              />
+            </>
+          )}
+
+          {/* Export Type 3: Property Range */}
+          {exportType === "property-range" && (
+            <>
+              <Form.Item
+                name="ward_no"
+                label={
+                  <span className="font-medium">
+                    Ward Number <span className="text-red-500">*</span>
+                  </span>
+                }
+                rules={[
+                  { required: true, message: "Please select a ward number!" },
+                ]}
+              >
+                <Select
+                  placeholder="Select Ward Number"
+                  options={getUniqueWardNumbers().map((ward) => ({
+                    label: `Ward ${ward}`,
+                    value: ward,
+                  }))}
+                />
+              </Form.Item>
+
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="property_no_start"
+                    label={
+                      <span className="font-medium">
+                        Property No (From){" "}
+                        <span className="text-red-500">*</span>
+                      </span>
+                    }
+                    rules={[
+                      {
+                        required: true,
+                        message: "Please enter start property number!",
+                      },
+                      {
+                        type: "number",
+                        min: 1,
+                        message: "Property number must be positive!",
+                      },
+                    ]}
+                  >
+                    <InputNumber
+                      placeholder="1"
+                      style={{ width: "100%" }}
+                      min={1}
+                    />
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="property_no_end"
+                    label={
+                      <span className="font-medium">
+                        Property No (To) <span className="text-red-500">*</span>
+                      </span>
+                    }
+                    rules={[
+                      {
+                        required: true,
+                        message: "Please enter end property number!",
+                      },
+                      {
+                        type: "number",
+                        min: 1,
+                        message: "Property number must be positive!",
+                      },
+                    ]}
+                  >
+                    <InputNumber
+                      placeholder="100"
+                      style={{ width: "100%" }}
+                      min={1}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Alert
+                type="info"
+                message="Property Range Export"
+                description="Export surveys within the specified property number range for the selected ward"
+                showIcon
+              />
+            </>
+          )}
+
+          <div className="flex justify-end space-x-2 mt-6 pt-4 border-t">
+            <Button onClick={handleExportCancel} size="large">
+              Cancel
+            </Button>
             <Button
               type="primary"
               htmlType="submit"
               loading={exportLoading}
               icon={<DownloadOutlined />}
+              size="large"
               className="bg-green-600 hover:bg-green-700"
             >
               {exportLoading ? "Exporting..." : "Export Excel"}
@@ -656,7 +879,7 @@ const Surveys = () => {
         </Form>
       </Modal>
 
-      {/* Import Modal - SAME AS YOUR EXISTING CODE */}
+      {/* IMPORT MODAL */}
       <Modal
         title={
           <div className="flex items-center">
@@ -677,7 +900,7 @@ const Surveys = () => {
               <div className="flex items-center mb-2">
                 <CloudDownloadOutlined className="text-orange-600 mr-2" />
                 <Text strong className="text-orange-800">
-                  🏗️ Download Import Template / [translate:आयात टेम्प्लेट डाउनलोड करा]
+                  🏗️ Download Import Template
                 </Text>
               </div>
               <div className="text-sm text-orange-700 mb-2">
@@ -692,7 +915,7 @@ const Surveys = () => {
               loading={templateDownloading}
               className="bg-gradient-to-r from-orange-600 to-yellow-600 border-0 ml-4"
             >
-              {templateDownloading ? 'Downloading...' : 'Download Template'}
+              {templateDownloading ? "Downloading..." : "Download Template"}
             </Button>
           </div>
         </Card>
@@ -700,23 +923,25 @@ const Surveys = () => {
         <div className="mb-4">
           <Title level={5} className="mb-2 flex items-center">
             <InboxOutlined className="mr-2" />
-            [translate:एक्सेल फाइल निवडा] / Select Excel File{" "}
-            <span className="text-red-500 ml-1">*</span>
+            Select Excel File <span className="text-red-500 ml-1">*</span>
           </Title>
 
           <Dragger
             {...uploadProps}
-            className={`mb-4 ${uploadedFile ? 'border-green-300 bg-green-50' : ''}`}
+            className={`mb-4 ${
+              uploadedFile ? "border-green-300 bg-green-50" : ""
+            }`}
             disabled={importLoading}
           >
             <p className="ant-upload-drag-icon">
-              <InboxOutlined style={{ color: uploadedFile ? '#52c41a' : undefined }} />
+              <InboxOutlined
+                style={{ color: uploadedFile ? "#52c41a" : undefined }}
+              />
             </p>
             <p className="ant-upload-text">
               {uploadedFile
                 ? `Selected: ${uploadedFile.name}`
-                : "Click or drag Excel file to upload"
-              }
+                : "Click or drag Excel file to upload"}
             </p>
             <p className="ant-upload-hint">
               Support for .xlsx and .xls files only. Maximum: 10MB
@@ -735,7 +960,9 @@ const Surveys = () => {
                 showInfo={false}
               />
               <div>
-                <Text strong className="text-blue-600">Processing Excel file...</Text>
+                <Text strong className="text-blue-600">
+                  Processing Excel file...
+                </Text>
               </div>
             </div>
           </Card>
@@ -750,7 +977,8 @@ const Surveys = () => {
                 <div className="mt-2">
                   {importResult.success_count > 0 && (
                     <div className="text-green-600 mb-2">
-                      ✅ Successfully imported: {importResult.success_count} surveys
+                      ✅ Successfully imported: {importResult.success_count}{" "}
+                      surveys
                     </div>
                   )}
                   {importResult.error_count > 0 && (
@@ -760,7 +988,9 @@ const Surveys = () => {
                   )}
                   {importResult.errors && importResult.errors.length > 0 && (
                     <div>
-                      <Text strong className="text-red-600">Error Details:</Text>
+                      <Text strong className="text-red-600">
+                        Error Details:
+                      </Text>
                       <List
                         size="small"
                         bordered
@@ -783,7 +1013,7 @@ const Surveys = () => {
 
         <div className="flex justify-end space-x-2 pt-4 border-t">
           <Button onClick={handleImportCancel} size="large">
-            {importResult?.success ? 'Close' : 'Cancel'}
+            {importResult?.success ? "Close" : "Cancel"}
           </Button>
           {!importResult?.success && (
             <Button
