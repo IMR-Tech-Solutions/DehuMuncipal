@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Table, Input, Button, Space, Popconfirm } from "antd";
+import { Table, Input, Button, Space, Popconfirm, Switch } from "antd";
 import {
   getallusersservice,
   deleteuserservice,
   getsingleuserservice,
+  updateuserservice,
 } from "../../services/newuserservices";
 import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { toast } from "react-toastify";
@@ -42,6 +43,26 @@ const Allusers = () => {
     fetchAllusers();
   }, []);
 
+  const handleToggleActive = async (userID: number, isActive: boolean) => {
+    try {
+      setLoading(true);
+      const formData = new FormData();
+      formData.append("is_active", String(isActive));
+
+      await updateuserservice(userID, formData);
+
+      toast.success(
+        `User has been ${isActive ? "activated" : "deactivated"} successfully.`
+      );
+      fetchAllusers();
+    } catch (error) {
+      console.error("Error toggling user active status:", error);
+      handleError(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSearch = (value: string) => {
     const filtered = allusers.filter(
       (user) =>
@@ -72,7 +93,7 @@ const Allusers = () => {
       sorter: (a: UserData, b: UserData) =>
         (a.user_type_name || "").localeCompare(b.user_type_name || ""),
       render: (name: string) => (
-        <span className="truncate role-field font-medium text-xs text-white/90">
+        <span className="truncate">
           {name ? name.charAt(0).toUpperCase() + name.slice(1) : "N/A"}
         </span>
       ),
@@ -143,6 +164,17 @@ const Allusers = () => {
             objectFit: "contain",
             borderRadius: "100%",
           }}
+        />
+      ),
+    },
+    {
+      title: "Active",
+      dataIndex: "is_active",
+      key: "is_active",
+      render: (isActive: boolean, record: UserData) => (
+        <Switch
+          checked={isActive}
+          onChange={(checked) => handleToggleActive(record.id, checked)}
         />
       ),
     },

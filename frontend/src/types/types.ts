@@ -20,6 +20,7 @@ export type NavItem = {
 };
 
 export interface UserData {
+  is_active: any;
   id: number;
   email: string;
   mobile_number: string;
