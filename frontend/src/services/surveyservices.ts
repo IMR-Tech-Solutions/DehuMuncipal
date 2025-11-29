@@ -39,7 +39,7 @@ export const updateSurveyService = async (
 // 📊 Export All Surveys to Excel
 export const exportAllSurveysToExcelService = async () => {
   try {
-    const response = await api.get("surveys/export-all/", {
+    const response = await api.get("export-all/", {
       responseType: "blob",
       headers: {
         "Content-Type": "application/json",
@@ -65,7 +65,7 @@ export const exportWardWiseSurveysToExcelService = async (params: {
   ward_no: number;
 }) => {
   try {
-    const response = await api.post("surveys/export-ward-wise/", params, {
+    const response = await api.post("export-ward-wise/", params, {
       responseType: "blob",
       headers: {
         "Content-Type": "application/json",
@@ -95,7 +95,7 @@ export const exportPropertyRangeSurveysToExcelService = async (params: {
   property_no_end: number;
 }) => {
   try {
-    const response = await api.post("surveys/export-property-range/", params, {
+    const response = await api.post("export-property-range/", params, {
       responseType: "blob",
       headers: {
         "Content-Type": "application/json",

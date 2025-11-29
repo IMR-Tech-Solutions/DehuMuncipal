@@ -9,7 +9,7 @@ class UserMasterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserMaster
-        fields = ['id', 'email', 'mobile_number', 'first_name', 'last_name', 'user_type','user_type_name','password','country','state','city','postal_code','user_image', 'is_active']
+        fields = ['id', 'email', 'mobile_number', 'first_name', 'last_name', 'user_type','user_type_name','password','country','state','city','postal_code','user_image', 'is_active',]
         extra_kwargs = {
             'password': {'write_only': True}
         }
