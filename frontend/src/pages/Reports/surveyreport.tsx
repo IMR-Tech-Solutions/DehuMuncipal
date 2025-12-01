@@ -22,7 +22,7 @@ import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 import { toast } from "react-toastify";
-import { getAllSurveysService } from "../../services/surveyservices";
+import { getMiniSurveysService } from "../../services/surveyservices";
 import { handleError } from "../../utils/handleError";
 import {
   downloadSingle115PDF,
@@ -34,11 +34,11 @@ const { Search } = Input;
 
 interface SurveyData {
   id: number;
-  zone_no: number;
   ward_no: number;
   property_no: string;
   created_at: string;
   created_by: string;
+  zone_no?: number;
 }
 
 interface PDFBulkFormValues {
@@ -59,13 +59,15 @@ const SurveyReports = () => {
   const [pdfBulkLoading, setPdfBulkLoading] = useState(false);
   const [pdfBulkForm] = Form.useForm();
   const [includeRange, setIncludeRange] = useState(false);
-  const [singlePdfLoading, setSinglePdfLoading] = useState<Record<number, boolean>>({});
+  const [singlePdfLoading, setSinglePdfLoading] = useState<
+    Record<number, boolean>
+  >({});
 
   // Fetch data
   const fetchSurveys = async () => {
     setLoading(true);
     try {
-      const response = await getAllSurveysService();
+      const response = await getMiniSurveysService();
       const data: SurveyData[] = Array.isArray(response)
         ? response
         : (response as any)?.results || (response as any)?.data || [];
@@ -184,6 +186,12 @@ const SurveyReports = () => {
       ),
     },
     {
+      title: "Owner Name",
+      dataIndex: "property_owner_name",
+      key: "property_owner_name",
+      render: (name: string) => name || "N/A",
+    },
+    {
       title: "Created By",
       dataIndex: "created_by",
       key: "created_by",
@@ -224,13 +232,16 @@ const SurveyReports = () => {
 
   return (
     <>
-      <PageMeta title="Report 115" description="Report 115 of Property Surveys" />
+      <PageMeta
+        title="Report 115"
+        description="Report 115 of Property Surveys"
+      />
       <PageBreadcrumb pageTitle="Report 115" />
 
       <ComponentCard title="Report 115 Surveys">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <Search
-            placeholder="Search by owner, property, or ward..."
+            placeholder="Search by property or ward..."
             onSearch={handleSearch}
             allowClear
           />
@@ -266,7 +277,8 @@ const SurveyReports = () => {
       <Modal
         title={
           <div className="flex items-center">
-            <FileTextOutlined className="mr-2 text-blue-600" /> Download Combined PDF
+            <FileTextOutlined className="mr-2 text-blue-600" /> Download
+            Combined PDF
           </div>
         }
         open={pdfBulkModalVisible}

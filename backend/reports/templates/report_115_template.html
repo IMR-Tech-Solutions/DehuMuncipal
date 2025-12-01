@@ -438,7 +438,6 @@ h1, h2, h3, h4, h5, h6 {
 
                                 <br>
 
-
                                 <div class="section-title">पाणी पुरवठा माहिती</div>
                                 <table class="table table-bordered" border="1" cellspacing="0" cellpadding="4"
                                     width="100%">
@@ -461,9 +460,7 @@ h1, h2, h3, h4, h5, h6 {
                                         </tr>
                                     </tbody>
                                 </table>
-                                <div style="display: flex; gap: 100px;">
-                                    <p><strong><strong>पिनकोड:</strong> {{ entry.pincode|default:"-" }}</p>
-    
+                                <div>
                                     <p><strong>नोंदणी दिनांक:</strong> {{ entry.created_at|date:"d/m/Y" }}</p>
                                 </div>
                             </div>

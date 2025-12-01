@@ -5,7 +5,7 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from .models import Survey
-from .serializers import SurveySerializer
+from .serializers import SurveySerializer, SurveyMiniSerializer
 from django.http import HttpResponse
 from django.db.models import Q
 from rest_framework.views import APIView
@@ -1051,4 +1051,26 @@ class SurveyStatsView(APIView):
 
 
 
+class SurveyMiniListView(APIView):
+    permission_classes = [IsAuthenticated, HasModuleAccess]
+    required_permission = "access-survey"
 
+    def get(self, request, format=None):
+        try:
+            qs = Survey.objects.all().order_by('-created_at')
+
+            paginator = PageNumberPagination()
+            paginator.page_size = 10
+            page = paginator.paginate_queryset(qs, request)
+
+            serializer = SurveyMiniSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        except Exception as e:
+            return Response(
+                {
+                    "success": False,
+                    "message": f"Error retrieving survey list: {str(e)}",
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )

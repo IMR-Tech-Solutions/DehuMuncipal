@@ -7,6 +7,10 @@ export const getAllSurveysService = () => {
   return getAllPaginatedData("surveys/");
 };
 
+export const getMiniSurveysService = () => {
+  return getAllPaginatedData("surveys-mini/"); 
+};
+
 // services/surveyservices.ts
 export const addSurveyService = async (
   surveyData: any,

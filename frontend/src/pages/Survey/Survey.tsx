@@ -20,7 +20,6 @@ import {
   Row,
   Space,
   Table,
-  Tag,
   Upload,
   Progress,
   Alert,
@@ -43,7 +42,7 @@ import {
   exportAllSurveysToExcelService,
   exportWardWiseSurveysToExcelService,
   exportPropertyRangeSurveysToExcelService,
-  getAllSurveysService,
+  getMiniSurveysService,
   importSurveysFromExcelService,
   downloadExcelTemplateService,
 } from "../../services/surveyservices";
@@ -58,16 +57,7 @@ interface SurveyData {
   id: number;
   ward_no: number;
   property_no: string;
-  old_ward_no?: string;
-  old_property_no?: string;
-  property_description?: string;
-  address?: string;
-  address_marathi?: string;
-  water_connection_available?: string;
-  number_of_water_connections?: number;
-  connection_size?: string;
-  remarks?: string;
-  remarks_marathi?: string;
+  property_owner_name?: string;
   created_at: string;
   created_by?: string;
 }
@@ -111,29 +101,22 @@ const Surveys = () => {
   const [exportForm] = Form.useForm();
 
   // Fetch all surveys
+  // const fetchSurveys = async () => {
   const fetchSurveys = async () => {
     setLoading(true);
     try {
-      const response = (await getAllSurveysService()) as any;
+      const response = (await getMiniSurveysService()) as any;
+
       const rawData = Array.isArray(response)
         ? response
         : (response && response.results) || (response && response.data) || [];
 
       const data: SurveyData[] = rawData.map((item: any) => ({
         id: item.id,
-        created_by: item.created_by,
         ward_no: item.ward_no,
         property_no: item.property_no,
-        old_ward_no: item.old_ward_no,
-        old_property_no: item.old_property_no,
-        property_description: item.property_description,
-        address: item.address,
-        address_marathi: item.address_marathi,
-        water_connection_available: item.water_connection_available,
-        number_of_water_connections: item.number_of_water_connections,
-        connection_size: item.connection_size,
-        remarks: item.remarks,
-        remarks_marathi: item.remarks_marathi,
+        property_owner_name: item.property_owner_name,
+        created_by: item.created_by,
         created_at: item.created_at,
       }));
 
@@ -155,7 +138,7 @@ const Surveys = () => {
   const [filters, setFilters] = useState({
     wardNo: "",
     propertyNo: "",
-    propertyDescription: "",
+    ownerName: "",
   });
 
   // Search functionality
@@ -171,10 +154,10 @@ const Surveys = () => {
           (survey.property_no || "")
             .toLowerCase()
             .includes(updatedFilters.propertyNo.toLowerCase())) &&
-        (!updatedFilters.propertyDescription ||
-          (survey.property_description || "")
+        (!updatedFilters.ownerName ||
+          (survey.property_owner_name || "")
             .toLowerCase()
-            .includes(updatedFilters.propertyDescription.toLowerCase()))
+            .includes(updatedFilters.ownerName.toLowerCase()))
       );
     });
 
@@ -463,7 +446,7 @@ const Surveys = () => {
         (currentPage - 1) * pageSize + index + 1,
     },
     {
-      title: "Ward/Property",
+      title: "Ward / Property",
       key: "property_info",
       render: (record: SurveyData) => (
         <div>
@@ -477,26 +460,10 @@ const Surveys = () => {
         (a.property_no || "").localeCompare(b.property_no || ""),
     },
     {
-      title: "Property Description",
-      dataIndex: "property_description",
-      key: "property_description",
-      render: (type: string) => (
-        <Tag color="blue" className="text-xs">
-          {type || "N/A"}
-        </Tag>
-      ),
-    },
-    {
-      title: "Address",
-      dataIndex: "address",
-      key: "address",
-      ellipsis: true,
-      render: (address: string) => address || "N/A",
-    },
-    {
-      title: "Created By",
-      dataIndex: "created_by",
-      key: "created_by",
+      title: "Owner Name",
+      dataIndex: "property_owner_name",
+      key: "property_owner_name",
+      render: (name: string) => name || "N/A",
     },
     {
       title: "Created Date",
@@ -561,7 +528,7 @@ const Surveys = () => {
         onAddClick={() => navigate("/create-survey")}
       >
         {/* Search Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <Search
             placeholder="Search by Ward No"
             onChange={(e) => handleSearch("wardNo", e.target.value)}
@@ -575,10 +542,8 @@ const Surveys = () => {
             className="w-full"
           />
           <Search
-            placeholder="Search by Property Description"
-            onChange={(e) =>
-              handleSearch("propertyDescription", e.target.value)
-            }
+            placeholder="Search by Owner Name"
+            onChange={(e) => handleSearch("ownerName", e.target.value)}
             allowClear
             className="w-full"
           />

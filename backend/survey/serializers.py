@@ -21,3 +21,18 @@ class SurveySerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
         return instance
+
+
+class SurveyMiniSerializer(serializers.ModelSerializer):
+    created_by = serializers.CharField(source='created_by.email', read_only=True)
+
+    class Meta:
+        model = Survey
+        fields = [
+            'id',
+            'ward_no',
+            'property_no',
+            'property_owner_name',
+            'created_by',
+            'created_at',
+        ]
