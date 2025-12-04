@@ -497,7 +497,7 @@ const Surveys = () => {
     {
       title: "Actions",
       key: "actions",
-      width: 120,
+      width: 100,
       fixed: "right" as const,
       render: (_: any, record: SurveyData) => (
         <Space>
@@ -599,6 +599,7 @@ const Surveys = () => {
           dataSource={surveys}
           loading={loading}
           rowKey="id"
+          className="custom-orders-table"
           pagination={{
             current: currentPage,
             pageSize,

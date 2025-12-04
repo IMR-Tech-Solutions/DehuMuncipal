@@ -245,7 +245,7 @@ const SurveyReports = () => {
     {
       title: "Actions",
       key: "actions",
-      width: 180,
+      width: 100,
       fixed: "right" as const,
       render: (_: any, record: SurveyData) => (
         <Space>
