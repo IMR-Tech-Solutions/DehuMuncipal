@@ -7,8 +7,12 @@ export const getAllSurveysService = () => {
   return getAllPaginatedData("surveys/");
 };
 
-export const getMiniSurveysService = () => {
-  return getAllPaginatedData("surveys-mini/"); 
+// In surveyservices.ts
+// surveys-services.ts - Update this function
+export const getMiniSurveysService = (params?: any) => {
+  return api
+    .get("surveys-mini/", { params }) // whatever axios instance you use
+    .then((res) => res.data);
 };
 
 // services/surveyservices.ts

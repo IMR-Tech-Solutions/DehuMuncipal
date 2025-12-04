@@ -1051,26 +1051,33 @@ class SurveyStatsView(APIView):
 
 
 
-class SurveyMiniListView(APIView):
+class SurveyMiniListViewAPIView(APIView):
     permission_classes = [IsAuthenticated, HasModuleAccess]
-    required_permission = "access-survey"
+    required_permission = 'access-survey'
 
     def get(self, request, format=None):
         try:
             qs = Survey.objects.all().order_by('-created_at')
-
+            
+            # ✅ ADD FILTERS
+            ward_no = request.query_params.get('ward_no')
+            property_no = request.query_params.get('property_no')
+            owner_name = request.query_params.get('owner_name')
+            
+            if ward_no:
+                qs = qs.filter(ward_no=ward_no)
+            if property_no:
+                qs = qs.filter(property_no__icontains=property_no)
+            if owner_name:
+                qs = qs.filter(property_owner_name__icontains=owner_name)
+            
             paginator = PageNumberPagination()
             paginator.page_size = 10
             page = paginator.paginate_queryset(qs, request)
-
             serializer = SurveyMiniSerializer(page, many=True)
             return paginator.get_paginated_response(serializer.data)
-
         except Exception as e:
-            return Response(
-                {
-                    "success": False,
-                    "message": f"Error retrieving survey list: {str(e)}",
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            return Response({
+                'success': False, 
+                'message': f'Error retrieving survey list: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

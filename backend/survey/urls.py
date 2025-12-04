@@ -8,7 +8,7 @@ urlpatterns = [
     path('surveys/', views.SurveyListView.as_view(), name='survey-list'),
     path('surveys/create/', views.SurveyCreateView.as_view(), name='survey-create'),
     path('surveys/<int:pk>/', views.SurveyDetailView.as_view(), name='survey-detail'),
-    path('surveys-mini/', views.SurveyMiniListView.as_view(), name='survey-mini-list'),
+    path('surveys-mini/', views.SurveyMiniListViewAPIView.as_view(), name='survey-mini-list'),
     # Excel Export URL
     # 1. Export ALL surveys (No parameters needed)
     path('export-all/', views.SurveyExcelExportAllView.as_view(), name='survey-export-all'),

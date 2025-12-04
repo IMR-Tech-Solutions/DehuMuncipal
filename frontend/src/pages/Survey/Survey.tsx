@@ -29,7 +29,7 @@ import {
   Tooltip,
   Select,
 } from "antd";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react"; // ✅ REMOVED useRef
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -80,14 +80,22 @@ interface ImportResult {
 const Surveys = () => {
   const permissions = useSelector((state: any) => state.user?.permissions);
   const [surveys, setSurveys] = useState<SurveyData[]>([]);
-  const [filteredSurveys, setFilteredSurveys] = useState<SurveyData[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalSurveys, setTotalSurveys] = useState(0);
+
+  // ✅ FIXED: Simple timeout state - NO NodeJS types needed
+  const [filters, setFilters] = useState({
+    wardNo: "",
+    propertyNo: "",
+    ownerName: "",
+  });
+  const [timeoutId, setTimeoutId] = useState<number | null>(null);
 
   // Export Modal States
   const [exportModalVisible, setExportModalVisible] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
-  const [exportType, setExportType] = useState<string>("all"); // all, ward-wise, property-range
+  const [exportType, setExportType] = useState<string>("all");
 
   // Import Modal States
   const [importModalVisible, setImportModalVisible] = useState(false);
@@ -100,17 +108,20 @@ const Surveys = () => {
   const navigate = useNavigate();
   const [exportForm] = Form.useForm();
 
-  // Fetch all surveys
-  // const fetchSurveys = async () => {
-  const fetchSurveys = async () => {
+  // ✅ FIXED: Proper fetchSurveys with currentFilters parameter
+  const fetchSurveys = async (page = 1, currentFilters?: any) => {
     setLoading(true);
     try {
-      const response = (await getMiniSurveysService()) as any;
+      const filtersToUse = currentFilters || filters;
+      
+      const response = await getMiniSurveysService({
+        page,
+        ward_no: filtersToUse.wardNo || undefined,
+        property_no: filtersToUse.propertyNo || undefined,
+        owner_name: filtersToUse.ownerName || undefined,
+      }) as any;
 
-      const rawData = Array.isArray(response)
-        ? response
-        : (response && response.results) || (response && response.data) || [];
-
+      const rawData = response.results || response.data || [];
       const data: SurveyData[] = rawData.map((item: any) => ({
         id: item.id,
         ward_no: item.ward_no,
@@ -121,7 +132,8 @@ const Surveys = () => {
       }));
 
       setSurveys(data);
-      setFilteredSurveys(data);
+      setTotalSurveys(response.count || rawData.length);
+      setCurrentPage(page);
     } catch (err) {
       handleError(err);
       console.error("Error fetching surveys:", err);
@@ -130,39 +142,42 @@ const Surveys = () => {
     }
   };
 
+  // Initial load
   useEffect(() => {
-    fetchSurveys();
+    fetchSurveys(1);
   }, []);
 
-  // Filters state
-  const [filters, setFilters] = useState({
-    wardNo: "",
-    propertyNo: "",
-    ownerName: "",
-  });
+  // ✅ FIXED: Debounced search - 100% browser compatible
+  const handleSearch = useCallback((field: string, value: string) => {
+    // Clear previous timeout
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
+    }
 
-  // Search functionality
-  const handleSearch = (field: string, value: string) => {
+    // Update filters immediately for UI
     const updatedFilters = { ...filters, [field]: value };
     setFilters(updatedFilters);
 
-    const filtered = surveys.filter((survey) => {
-      return (
-        (!updatedFilters.wardNo ||
-          (survey.ward_no || "").toString().includes(updatedFilters.wardNo)) &&
-        (!updatedFilters.propertyNo ||
-          (survey.property_no || "")
-            .toLowerCase()
-            .includes(updatedFilters.propertyNo.toLowerCase())) &&
-        (!updatedFilters.ownerName ||
-          (survey.property_owner_name || "")
-            .toLowerCase()
-            .includes(updatedFilters.ownerName.toLowerCase()))
-      );
-    });
+    // Set new timeout using window.setTimeout (returns number)
+    const newTimeoutId = window.setTimeout(() => {
+      fetchSurveys(1, updatedFilters);
+    }, 500);
 
-    setFilteredSurveys(filtered);
-    setCurrentPage(1);
+    setTimeoutId(newTimeoutId);
+  }, [filters, timeoutId]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [timeoutId]);
+
+  // Pagination handler
+  const handlePaginationChange = (page: number) => {
+    fetchSurveys(page, filters);
   };
 
   // Delete survey
@@ -172,7 +187,7 @@ const Surveys = () => {
       try {
         await deleteSurveyService(id);
         toast.success("Survey deleted successfully");
-        await fetchSurveys();
+        await fetchSurveys(currentPage, filters);
       } catch (err) {
         handleError(err);
         console.error("Error deleting survey:", err);
@@ -180,7 +195,7 @@ const Surveys = () => {
         setLoading(false);
       }
     } else {
-      toast.error("You dont have permission for this");
+      toast.error("You don't have permission for this");
     }
   };
 
@@ -189,7 +204,7 @@ const Surveys = () => {
     if (permissions === "all" || permissions.includes("editsurvey")) {
       navigate(`/survey/edit/${id}`);
     } else {
-      toast.error("You dont have permission for this");
+      toast.error("You don't have permission for this");
     }
   };
 
@@ -377,7 +392,7 @@ const Surveys = () => {
         if (result.error_count > 0) {
           toast.warning(`${result.error_count} records had errors`);
         }
-        await fetchSurveys();
+        await fetchSurveys(currentPage, filters);
       } else {
         toast.error(result.message);
       }
@@ -527,22 +542,25 @@ const Surveys = () => {
         addButtonText="Create New Survey"
         onAddClick={() => navigate("/create-survey")}
       >
-        {/* Search Section */}
+        {/* ✅ FIXED: Search Section with controlled inputs */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <Search
             placeholder="Search by Ward No"
+            value={filters.wardNo}
             onChange={(e) => handleSearch("wardNo", e.target.value)}
             allowClear
             className="w-full"
           />
           <Search
             placeholder="Search by Property No"
+            value={filters.propertyNo}
             onChange={(e) => handleSearch("propertyNo", e.target.value)}
             allowClear
             className="w-full"
           />
           <Search
             placeholder="Search by Owner Name"
+            value={filters.ownerName}
             onChange={(e) => handleSearch("ownerName", e.target.value)}
             allowClear
             className="w-full"
@@ -574,51 +592,25 @@ const Surveys = () => {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
-          <Card size="small" className="text-center">
-            <div className="text-2xl font-bold text-blue-600">
-              {surveys.length}
-            </div>
-            <div className="text-gray-500 text-sm">Total Surveys</div>
-          </Card>
-          <Card size="small" className="text-center">
-            <div className="text-2xl font-bold text-green-600">
-              {getUniqueWardNumbers().length}
-            </div>
-            <div className="text-gray-500 text-sm">Wards Covered</div>
-          </Card>
-          <Card size="small" className="text-center">
-            <div className="text-2xl font-bold text-orange-600">
-              {filteredSurveys.length}
-            </div>
-            <div className="text-gray-500 text-sm">Filtered Results</div>
-          </Card>
-        </div>
-
+       
         {/* Survey Table */}
         <Table
           columns={columns}
-          className="custom-orders-table"
-          dataSource={filteredSurveys}
+          dataSource={surveys}
           loading={loading}
           rowKey="id"
           pagination={{
             current: currentPage,
             pageSize,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} surveys`,
-            onChange: (page) => setCurrentPage(page),
+            total: totalSurveys,
+            onChange: handlePaginationChange,
+            showSizeChanger: false,
+            showQuickJumper: false,
           }}
-          scroll={{ x: 1200 }}
-          size="middle"
         />
       </ComponentCard>
 
-      {/* ============================================ */}
       {/* EXPORT MODAL - 3 Export Types */}
-      {/* ============================================ */}
       <Modal
         title={
           <div className="flex items-center">
@@ -685,7 +677,7 @@ const Surveys = () => {
                 className="!h-20 flex flex-col items-center justify-center"
               >
                 <FileExcelOutlined className="text-xl mb-1" />
-                <span className="text-xs PY-5">Property Range</span>
+                <span className="text-xs">Property Range</span>
               </Button>
             </div>
           </Form.Item>
@@ -765,8 +757,7 @@ const Surveys = () => {
                     name="property_no_start"
                     label={
                       <span className="font-medium">
-                        Property No (From){" "}
-                        <span className="text-red-500">*</span>
+                        Property No (From) <span className="text-red-500">*</span>
                       </span>
                     }
                     rules={[

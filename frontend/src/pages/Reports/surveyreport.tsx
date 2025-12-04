@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Table,
   Button,
@@ -39,6 +39,7 @@ interface SurveyData {
   created_at: string;
   created_by: string;
   zone_no?: number;
+  property_owner_name?: string;
 }
 
 interface PDFBulkFormValues {
@@ -50,11 +51,16 @@ interface PDFBulkFormValues {
 
 const SurveyReports = () => {
   const [surveys, setSurveys] = useState<SurveyData[]>([]);
-  const [filteredSurveys, setFilteredSurveys] = useState<SurveyData[]>([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalSurveys, setTotalSurveys] = useState(0);
   const pageSize = 10;
 
+  // ✅ FIXED: Simple search state - NO NodeJS types needed
+  const [searchValue, setSearchValue] = useState("");
+  const [timeoutId, setTimeoutId] = useState<number | null>(null);
+
+  // PDF Modal States
   const [pdfBulkModalVisible, setPdfBulkModalVisible] = useState(false);
   const [pdfBulkLoading, setPdfBulkLoading] = useState(false);
   const [pdfBulkForm] = Form.useForm();
@@ -63,44 +69,71 @@ const SurveyReports = () => {
     Record<number, boolean>
   >({});
 
-  // Fetch data
-  const fetchSurveys = async () => {
+  // ✅ FIXED: Proper fetchSurveys with filters and pagination
+  const fetchSurveys = async (page = 1, search = "") => {
     setLoading(true);
     try {
-      const response = await getMiniSurveysService();
-      const data: SurveyData[] = Array.isArray(response)
-        ? response
-        : (response as any)?.results || (response as any)?.data || [];
+      const response = await getMiniSurveysService({
+        page,
+        search: search || undefined,
+      }) as any;
+
+      const rawData = response.results || response.data || [];
+      const data: SurveyData[] = rawData.map((item: any) => ({
+        id: item.id,
+        ward_no: item.ward_no,
+        property_no: item.property_no,
+        property_owner_name: item.property_owner_name,
+        created_by: item.created_by,
+        created_at: item.created_at,
+        zone_no: item.zone_no,
+      }));
 
       setSurveys(data);
-      setFilteredSurveys(data);
-      setCurrentPage(1);
+      setTotalSurveys(response.count || rawData.length);
+      setCurrentPage(page);
     } catch (err) {
       handleError(err);
+      console.error("Error fetching surveys:", err);
     } finally {
       setLoading(false);
     }
   };
 
+  // Initial load
   useEffect(() => {
-    fetchSurveys();
+    fetchSurveys(1);
   }, []);
 
-  const handleSearch = (value: string) => {
-    if (!value.trim()) {
-      setFilteredSurveys(surveys);
-      return;
+  // ✅ FIXED: Debounced search - 100% browser compatible
+  const handleSearch = useCallback((value: string) => {
+    setSearchValue(value);
+
+    // Clear previous timeout
+    if (timeoutId) {
+      window.clearTimeout(timeoutId);
     }
 
-    const searchText = value.toLowerCase();
-    const filtered = surveys.filter(
-      (survey) =>
-        survey.property_no.toLowerCase().includes(searchText) ||
-        String(survey.ward_no).includes(searchText)
-    );
+    // Set new timeout using window.setTimeout (returns number)
+    const newTimeoutId = window.setTimeout(() => {
+      fetchSurveys(1, value);
+    }, 500);
 
-    setFilteredSurveys(filtered);
-    setCurrentPage(1);
+    setTimeoutId(newTimeoutId);
+  }, [timeoutId]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [timeoutId]);
+
+  // Pagination handler
+  const handlePaginationChange = (page: number) => {
+    fetchSurveys(page, searchValue);
   };
 
   const handleView = (id: number) => {
@@ -171,17 +204,17 @@ const SurveyReports = () => {
     {
       title: "Sr. No",
       key: "srno",
+      width: 70,
       render: (_: any, __: SurveyData, index: number) =>
         (currentPage - 1) * pageSize + index + 1,
-      width: 70,
     },
     {
       title: "Ward | Property",
       key: "property_info",
       render: (record: SurveyData) => (
         <div>
-          <div>Ward: {record.ward_no} </div>
-          <div>Property: {record.property_no}</div>
+          <div className="font-medium">Ward: {record.ward_no}</div>
+          <div className="text-sm text-gray-500">Property: {record.property_no}</div>
         </div>
       ),
     },
@@ -195,17 +228,25 @@ const SurveyReports = () => {
       title: "Created By",
       dataIndex: "created_by",
       key: "created_by",
+      render: (createdBy: string) => createdBy || "N/A",
     },
     {
       title: "Created Date",
       dataIndex: "created_at",
       key: "created_at",
-      render: (date: string) => new Date(date).toLocaleDateString("en-IN"),
+      render: (date: string) => {
+        try {
+          return new Date(date).toLocaleDateString("en-IN");
+        } catch {
+          return "N/A";
+        }
+      },
     },
     {
       title: "Actions",
       key: "actions",
       width: 180,
+      fixed: "right" as const,
       render: (_: any, record: SurveyData) => (
         <Space>
           <Tooltip title="View Survey">
@@ -222,7 +263,7 @@ const SurveyReports = () => {
               type="primary"
               loading={singlePdfLoading[record.id] || false}
               onClick={() => handleSinglePDFDownload(record)}
-              className="bg-green-600 hover:bg-green-700 border-green-600"
+              className="bg-green-600 hover:bg-green-700 border-green-600 hover:border-green-700 text-white"
             />
           </Tooltip>
         </Space>
@@ -239,17 +280,19 @@ const SurveyReports = () => {
       <PageBreadcrumb pageTitle="Report 115" />
 
       <ComponentCard title="Report 115 Surveys">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 items-end">
           <Search
-            placeholder="Search by property or ward..."
-            onSearch={handleSearch}
+            placeholder="Search by property, ward or owner..."
+            value={searchValue}
+            onChange={(e) => handleSearch(e.target.value)}
             allowClear
+            className="w-full"
           />
           <Button
             type="primary"
             icon={<FileTextOutlined />}
             onClick={showPdfBulkModal}
-            className="bg-blue-600 hover:bg-blue-700 border-blue-600"
+            className="bg-blue-600 hover:bg-blue-700 border-blue-600 hover:border-blue-700 text-white"
           >
             Combined PDF Download
           </Button>
@@ -257,17 +300,18 @@ const SurveyReports = () => {
 
         <Table
           columns={columns}
-          dataSource={filteredSurveys}
+          dataSource={surveys}
           loading={loading}
           rowKey="id"
           pagination={{
             current: currentPage,
             pageSize,
+            total: totalSurveys,
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total, range) =>
               `${range[0]}-${range[1]} of ${total} surveys`,
-            onChange: (page) => setCurrentPage(page),
+            onChange: handlePaginationChange,
           }}
           scroll={{ x: 1000 }}
           className="custom-orders-table"
@@ -277,8 +321,8 @@ const SurveyReports = () => {
       <Modal
         title={
           <div className="flex items-center">
-            <FileTextOutlined className="mr-2 text-blue-600" /> Download
-            Combined PDF
+            <FileTextOutlined className="mr-2 text-blue-600" />
+            Download Combined PDF
           </div>
         }
         open={pdfBulkModalVisible}
@@ -332,14 +376,14 @@ const SurveyReports = () => {
             </Row>
           )}
 
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end space-x-2 pt-4 border-t">
             <Button onClick={handlePdfBulkCancel}>Cancel</Button>
             <Button
               type="primary"
               htmlType="submit"
               loading={pdfBulkLoading}
               icon={<FileTextOutlined />}
-              className="bg-blue-600 hover:bg-blue-700 border-blue-600"
+              className="bg-blue-600 hover:bg-blue-700 border-blue-600 hover:border-blue-700 text-white"
             >
               {pdfBulkLoading ? "Downloading..." : "Download Combined PDF"}
             </Button>
